@@ -1,0 +1,29 @@
+﻿{
+  "collapse-filter": false,
+  "search": "",
+  "showTags": true,
+  "showAttachments": false,
+  "hideUnresolved": false,
+  "showOrphans": true,
+  "collapse-color-groups": false,
+  "colorGroups": [
+    { "query": "tag:#auth", "color": { "a": 1, "rgb": 4360940 } },
+    { "query": "tag:#architecture", "color": { "a": 1, "rgb": 8978380 } },
+    { "query": "tag:#api", "color": { "a": 1, "rgb": 14494427 } },
+    { "query": "tag:#database", "color": { "a": 1, "rgb": 5088511 } },
+    { "query": "tag:#deployment", "color": { "a": 1, "rgb": 16744272 } },
+    { "query": "tag:#roadmap", "color": { "a": 1, "rgb": 10685952 } }
+  ],
+  "collapse-display": false,
+  "showArrow": true,
+  "textFadeMultiplier": 0,
+  "nodeSizeMultiplier": 1.5,
+  "lineSizeMultiplier": 1,
+  "collapse-forces": false,
+  "centerStrength": 0.5,
+  "repelStrength": 14,
+  "linkStrength": 1,
+  "linkDistance": 250,
+  "scale": 1,
+  "close": false
+}
