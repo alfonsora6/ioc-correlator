@@ -1,5 +1,5 @@
-﻿# IOC Correlator — Obsidian Vault
+# IOC Correlator — Bóveda Obsidian
 
-Open this folder as an Obsidian vault.
+Abre esta carpeta como **bóveda** en Obsidian para explorar la arquitectura, integraciones, autenticación y despliegue del proyecto.
 
-Start at [[Architecture]].
+Empieza por [[Architecture]].

@@ -1,43 +1,43 @@
 # IOC Correlator
 
-> Threat Intelligence platform that correlates IPs, domains, URLs and hashes against VirusTotal, AbuseIPDB, Shodan and AlienVault OTX. Multi-tenant, with PDF export and batch analysis.
+> Plataforma de inteligencia de amenazas que correlaciona IPs, dominios, URLs y hashes contra VirusTotal, AbuseIPDB, Shodan y AlienVault OTX. Multi-tenant, con exportación PDF y análisis por lotes.
 
-## Features
+## Características
 
-- Multi-tenant authentication (register / login / JWT)
-- Single IOC analysis: auto-detect IP / domain / URL / hash
-- Parallel queries to VirusTotal, AbuseIPDB, Shodan, AlienVault OTX
-- Aggregate threat score (0-100) with LOW / MEDIUM / HIGH / CRITICAL severity
-- Batch analysis: upload .txt / .csv / .log files, auto-extract all IOCs
-- Real-time progress via WebSocket
-- API key management with OAuth (VirusTotal) and validation
-- Threat dashboard: counters, charts, world map, history
-- PDF export with tenant name and UTC timestamp
-- Obsidian knowledge vault included (open /obsidian/ as vault)
-- Dark/light mode, glassmorphism design, fully responsive
+- Autenticación multi-tenant (registro / inicio de sesión / JWT)
+- Análisis de IOC individual: detección automática de IP / dominio / URL / hash
+- Consultas en paralelo a VirusTotal, AbuseIPDB, Shodan y AlienVault OTX
+- Puntuación agregada de amenaza (0-100) con severidad LOW / MEDIUM / HIGH / CRITICAL
+- Análisis por lotes: subida de archivos `.txt` / `.csv` / `.log` con extracción automática de IOCs
+- Progreso en tiempo real vía WebSocket
+- Gestión de claves API con OAuth (VirusTotal) y validación
+- Panel de amenazas: contadores, gráficos, orígenes geográficos e historial
+- Exportación PDF con nombre del tenant y marca de tiempo UTC
+- Bóveda de conocimiento Obsidian incluida (abrir la carpeta `/obsidian/` como vault)
+- Modo oscuro/claro, diseño glassmorphism y diseño responsive
 
-## Prerequisites
+## Requisitos previos
 
-- Docker >= 24.x and Docker Compose >= 2.x
-- OR: Python >= 3.11, Node.js >= 20, pnpm, PostgreSQL 16, Redis 7
+- Docker >= 24.x y Docker Compose >= 2.x
+- O bien: Python >= 3.11, Node.js >= 20, pnpm, PostgreSQL 16, Redis 7
 
-## Quick Start (Docker — recommended)
+## Inicio rápido (Docker — recomendado)
 
-`ash
-git clone https://github.com/YOUR_USER/ioc-correlator.git
+```bash
+git clone https://github.com/TU_USUARIO/ioc-correlator.git
 cd ioc-correlator
 cp .env.example .env
-# Open .env and fill in SECRET_KEY at minimum (docker-compose provides a dev ENCRYPTION_KEY default)
+# Edita .env y rellena SECRET_KEY como mínimo (docker-compose incluye ENCRYPTION_KEY de desarrollo por defecto)
 docker compose up --build
-`
+```
 
-Open http://localhost:5173 — register your account and start analyzing IOCs.
+Abre http://localhost:5173 — regístrate y empieza a analizar IOCs.
 
-## Manual Setup
+## Instalación manual
 
 ### Backend
 
-`ash
+```bash
 cd backend
 python -m venv venv
 # Windows: venv\Scripts\activate
@@ -45,49 +45,53 @@ pip install -r requirements.txt
 cp ../.env.example ../.env
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
-`
+```
 
-### Celery Worker (for batch analysis)
+### Worker Celery (análisis por lotes)
 
-`ash
+```bash
 cd backend
 celery -A app.tasks.celery_app worker --loglevel=info
-`
+```
 
 ### Frontend
 
-`ash
+```bash
 cd frontend
 pnpm install
 pnpm dev
-`
+```
 
-## Environment Variables
+## Variables de entorno
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| SECRET_KEY | YES | Random secret for JWT signing (min 32 chars) |
-| DATABASE_URL | YES | PostgreSQL async URL |
-| REDIS_URL | YES | Redis URL |
-| ENCRYPTION_KEY | YES (dev default in compose) | Base64-encoded Fernet key |
-| VT_CLIENT_ID | NO | VirusTotal OAuth App client ID |
-| VT_CLIENT_SECRET | NO | VirusTotal OAuth App client secret |
-| VT_REDIRECT_URI | NO | OAuth callback URL |
-| ACCESS_TOKEN_EXPIRE_MINUTES | NO | Default: 15 |
-| REFRESH_TOKEN_EXPIRE_DAYS | NO | Default: 7 |
+| Variable | Obligatoria | Descripción |
+|----------|-------------|-------------|
+| SECRET_KEY | SÍ | Secreto aleatorio para firmar JWT (mín. 32 caracteres) |
+| DATABASE_URL | SÍ | URL async de PostgreSQL |
+| REDIS_URL | SÍ | URL de Redis |
+| ENCRYPTION_KEY | SÍ (valor por defecto en compose en dev) | Clave Fernet en base64 |
+| VT_CLIENT_ID | NO | ID de cliente OAuth de VirusTotal |
+| VT_CLIENT_SECRET | NO | Secreto OAuth de VirusTotal |
+| VT_REDIRECT_URI | NO | URL de callback OAuth |
+| ACCESS_TOKEN_EXPIRE_MINUTES | NO | Por defecto: 15 |
+| REFRESH_TOKEN_EXPIRE_DAYS | NO | Por defecto: 7 |
 
-## API Documentation
+## Documentación de la API
 
-Once the backend is running, visit: http://localhost:8000/docs
+Con el backend en ejecución, visita: http://localhost:8000/docs
 
-## Obsidian Knowledge Vault
+## Bóveda Obsidian
 
-Open Obsidian and choose **Open folder as vault** for the /obsidian/ folder inside this project.
+En Obsidian, elige **Abrir carpeta como bóveda** y selecciona la carpeta `/obsidian/` dentro de este proyecto. Usa la vista de grafo para navegar entre notas enlazadas.
 
-## Contributing
+## Cumplimiento de proveedores
 
-Pull requests are welcome. Please open an issue first to discuss changes.
+Debes cumplir los términos de uso y límites de cuota de **VirusTotal**, **AbuseIPDB**, **Shodan** y **OTX**. Las claves API son responsabilidad de cada tenant.
 
-## License
+## Contribuir
+
+Las pull requests son bienvenidas. Abre primero un issue para discutir cambios importantes.
+
+## Licencia
 
 MIT
