@@ -24,7 +24,7 @@
 ## Inicio rápido (Docker — recomendado)
 
 ```bash
-git clone https://github.com/TU_USUARIO/ioc-correlator.git
+git clone https://github.com/alfonsora6/ioc-correlator.git
 cd ioc-correlator
 cp .env.example .env
 # Edita .env y rellena SECRET_KEY como mínimo (docker-compose incluye ENCRYPTION_KEY de desarrollo por defecto)
