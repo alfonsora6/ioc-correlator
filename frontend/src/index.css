@@ -2,6 +2,204 @@
 @tailwind components;
 @tailwind utilities;
 
+<<<<<<< HEAD
+@layer base {
+  :root {
+    color-scheme: light;
+    --page-from: #f8fafc;
+    --page-via: #ffffff;
+    --page-to: #eef2ff;
+    --text-primary: 15 23 42;
+    --text-secondary: 100 116 139;
+    --text-muted: 148 163 184;
+    --surface: 255 255 255;
+    --surface-elevated: 255 255 255;
+    --glass-bg: rgba(255, 255, 255, 0.85);
+    --glass-border: rgba(226, 232, 240, 0.9);
+    --subtle-border: rgba(203, 213, 225, 0.8);
+    --sidebar-bg: rgba(255, 255, 255, 0.75);
+    --nav-hover: rgba(241, 245, 249, 1);
+    --nav-active: rgba(237, 233, 254, 1);
+    --nav-active-text: 91 33 182;
+    --input-bg: rgba(248, 250, 252, 1);
+    --chart-tick: #64748b;
+    --shadow-glass: 0 4px 24px rgba(15, 23, 42, 0.06);
+  }
+
+  html.dark {
+    color-scheme: dark;
+    --page-from: #020617;
+    --page-via: #020617;
+    --page-to: #1e1b4b;
+    --text-primary: 241 245 249;
+    --text-secondary: 148 163 184;
+    --text-muted: 100 116 139;
+    --surface: 15 23 42;
+    --surface-elevated: 30 41 59;
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --subtle-border: rgba(255, 255, 255, 0.1);
+    --sidebar-bg: rgba(0, 0, 0, 0.25);
+    --nav-hover: rgba(255, 255, 255, 0.05);
+    --nav-active: rgba(124, 58, 237, 0.2);
+    --nav-active-text: 196 181 253;
+    --input-bg: rgba(255, 255, 255, 0.05);
+    --chart-tick: #94a3b8;
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  body {
+    @apply antialiased;
+    color: rgb(var(--text-primary));
+    background: linear-gradient(135deg, var(--page-from), var(--page-via) 40%, var(--page-to));
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .text-primary {
+    color: rgb(var(--text-primary));
+  }
+
+  .text-secondary {
+    color: rgb(var(--text-secondary));
+  }
+
+  .text-muted {
+    color: rgb(var(--text-muted));
+  }
+
+  .border-subtle {
+    border-color: var(--subtle-border);
+  }
+
+  .bg-surface {
+    background-color: rgb(var(--surface));
+  }
+
+  .bg-surface-elevated {
+    background-color: rgb(var(--surface-elevated));
+  }
+
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-glass);
+    @apply rounded-xl;
+  }
+
+  .surface-row {
+    @apply rounded-lg border border-subtle px-3 py-2 text-sm;
+    background: rgb(var(--surface-elevated) / 0.6);
+  }
+
+  html.dark .surface-row {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .page-title {
+    @apply text-2xl font-bold tracking-tight text-primary;
+  }
+
+  .page-subtitle {
+    @apply text-sm text-secondary;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors;
+    color: rgb(var(--text-secondary));
+  }
+
+  .nav-link:hover {
+    background: var(--nav-hover);
+    color: rgb(var(--text-primary));
+  }
+
+  .nav-link-active {
+    background: var(--nav-active);
+    color: rgb(var(--nav-active-text));
+  }
+
+  html.dark .nav-link-active {
+    color: rgb(226 232 240);
+  }
+
+  .sev-critical {
+    @apply rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    background: rgba(244, 63, 94, 0.15);
+    color: rgb(190 18 60);
+  }
+
+  html.dark .sev-critical {
+    color: rgb(254 205 211);
+  }
+
+  .sev-high {
+    @apply rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    background: rgba(249, 115, 22, 0.15);
+    color: rgb(194 65 12);
+  }
+
+  html.dark .sev-high {
+    color: rgb(254 215 170);
+  }
+
+  .sev-medium {
+    @apply rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    background: rgba(245, 158, 11, 0.15);
+    color: rgb(180 83 9);
+  }
+
+  html.dark .sev-medium {
+    color: rgb(253 230 138);
+  }
+
+  .sev-low {
+    @apply rounded-full px-2.5 py-0.5 text-xs font-semibold;
+    background: rgba(16, 185, 129, 0.15);
+    color: rgb(4 120 87);
+  }
+
+  html.dark .sev-low {
+    color: rgb(167 243 208);
+  }
+
+  .badge-live {
+    @apply rounded-full px-3 py-1 text-xs font-medium;
+    background: rgba(16, 185, 129, 0.15);
+    color: rgb(4 120 87);
+  }
+
+  html.dark .badge-live {
+    color: rgb(167 243 208);
+  }
+
+  .badge-missing {
+    @apply rounded-full px-3 py-1 text-xs font-medium;
+    background: rgba(100, 116, 139, 0.15);
+    color: rgb(var(--text-secondary));
+  }
+
+  .badge-error {
+    @apply rounded-full px-3 py-1 text-xs font-medium;
+    background: rgba(244, 63, 94, 0.15);
+    color: rgb(190 18 60);
+  }
+
+  html.dark .badge-error {
+    color: rgb(254 205 211);
+  }
+
+  .progress-track {
+    @apply h-2.5 w-full overflow-hidden rounded-full;
+    background: rgb(var(--surface-elevated) / 0.8);
+  }
+
+  html.dark .progress-track {
+    background: rgba(255, 255, 255, 0.1);
+  }
+=======
 :root {
   color-scheme: dark;
 }
@@ -16,4 +214,5 @@ html.light body {
 
 html.light .glass {
   @apply bg-white/70 border-slate-200/80 shadow-lg;
+>>>>>>> 8c5e468ad80beef5ded8e7541e371e40ff3162ca
 }
