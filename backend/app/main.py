@@ -4,7 +4,7 @@ import redis.asyncio as redis
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analyses, api_keys, auth, batch, dashboard, reports, users
+from app.api import analyses, api_keys, auth, batch, dashboard, reports, users, vt_files
 from app.core.config import get_settings
 
 
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
     api.include_router(api_keys.vt_router)
     api.include_router(api_keys.router)
     api.include_router(analyses.router)
+    api.include_router(vt_files.router)
     api.include_router(batch.router)
     api.include_router(dashboard.router)
     api.include_router(reports.router)

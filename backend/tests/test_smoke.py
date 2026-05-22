@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 from app.services.aggregate import aggregate_scores, severity_from_score
-=======
-﻿from app.services.aggregate import aggregate_scores, severity_from_score
->>>>>>> 8c5e468ad80beef5ded8e7541e371e40ff3162ca
 from app.services.ioc_detect import detect_ioc, extract_iocs_from_text
 
 

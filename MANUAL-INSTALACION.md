@@ -85,39 +85,12 @@ git clone https://github.com/alfonsora6/ioc-correlator.git
 cd ioc-correlator
 ```
 
-<<<<<<< HEAD
 ### Paso 2 — Crear el archivo .env
 ```bash
 cp .env.example .env
 ```
 
 ### Paso 3 — Generar valores seguros para el .env
-=======
-### Paso 2 — Convertir codificación de archivos
-El proyecto se desarrolló en Windows, por lo que algunos archivos pueden tener codificación UTF-16 o saltos de línea CRLF. Es obligatorio convertirlos antes de continuar.
-
-```bash
-# Paso 2a — Convertir archivos UTF-16 a UTF-8 (Dockerfiles y otros)
-find . -type f -not -path './.git/*' | while read f; do
-  if file "$f" | grep -q "UTF-16"; then
-    iconv -f UTF-16LE -t UTF-8 "$f" -o "$f.tmp" && mv "$f.tmp" "$f"
-    echo "Convertido: $f"
-  fi
-done
-
-# Paso 2b — Convertir saltos de línea CRLF a LF
-find . -type f -not -path './.git/*' | xargs dos2unix 2>/dev/null
-```
-
-> **Nota:** `iconv` convierte la codificación del archivo (UTF-16 → UTF-8). `dos2unix` convierte los saltos de línea (Windows CRLF → Linux LF). Son dos problemas distintos y ambos comandos son necesarios.
-
-### Paso 3 — Crear el archivo .env
-```bash
-iconv -f UTF-16 -t UTF-8 .env.example > .env 2>/dev/null || cp .env.example .env
-```
-
-### Paso 4 — Generar valores seguros para el .env
->>>>>>> 8c5e468ad80beef5ded8e7541e371e40ff3162ca
 ```bash
 # Generar SECRET_KEY
 SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
@@ -126,11 +99,7 @@ SECRET=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 ENCKEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
 ```
 
-<<<<<<< HEAD
 ### Paso 4 — Aplicar los valores al .env
-=======
-### Paso 5 — Aplicar los valores al .env
->>>>>>> 8c5e468ad80beef5ded8e7541e371e40ff3162ca
 ```bash
 sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET|" .env
 sed -i "s|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$ENCKEY|" .env

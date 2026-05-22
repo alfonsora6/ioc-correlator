@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-<<<<<<< HEAD
 @layer base {
   :root {
     color-scheme: light;
@@ -199,20 +198,4 @@
   html.dark .progress-track {
     background: rgba(255, 255, 255, 0.1);
   }
-=======
-:root {
-  color-scheme: dark;
-}
-
-html.light body {
-  @apply bg-slate-50 text-slate-900;
-}
-
-.glass {
-  @apply bg-white/5 backdrop-blur-md border border-white/10 shadow-xl;
-}
-
-html.light .glass {
-  @apply bg-white/70 border-slate-200/80 shadow-lg;
->>>>>>> 8c5e468ad80beef5ded8e7541e371e40ff3162ca
 }
