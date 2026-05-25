@@ -14,6 +14,7 @@ tags: [roadmap, future, features, hoja-de-ruta]
 - [x] Análisis por lotes vía Celery
 - [x] Exportación PDF
 - [x] Bóveda Obsidian de conocimiento
+- [x] Script `install.sh` de instalación automatizada (UTF-8)
 
 ## v1.1
 

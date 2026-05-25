@@ -26,7 +26,15 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [self.frontend_url.rstrip("/")]
+        origins = {self.frontend_url.rstrip("/")}
+        if self.environment == "development":
+            origins.update(
+                {
+                    "http://localhost:5173",
+                    "http://127.0.0.1:5173",
+                }
+            )
+        return sorted(origins)
 
 
 @lru_cache

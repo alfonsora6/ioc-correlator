@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/i18n";
-import { api } from "@/lib/api";
+import { api, getApiBaseURL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 export function BatchPage() {
@@ -13,7 +13,7 @@ export function BatchPage() {
   const [progress, setProgress] = useState<{ processed: number; total: number; status: string } | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  const wsBase = useMemo(() => (import.meta.env.VITE_API_URL || `http://${location.hostname}:8000`).replace(/^http/, "ws"), []);
+  const wsBase = useMemo(() => getApiBaseURL().replace(/^http/, "ws"), []);
 
   async function onPick() {
     const f = inputRef.current?.files?.[0];

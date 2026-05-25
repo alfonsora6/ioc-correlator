@@ -36,6 +36,10 @@ graph TD
 4. Se agregan puntuaciones (pesos 40/30/20/10) y se mapea severidad.
 5. Se persiste en `analyses` y se devuelve al cliente.
 
+## Despliegue
+
+Ver [[Installation]] y [[Deployment]] para `install.sh`, Docker Compose y variables de entorno.
+
 ## Notas relacionadas
 
 - [[Auth-Flow]]

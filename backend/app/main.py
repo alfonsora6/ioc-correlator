@@ -20,13 +20,17 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="IOC Correlator API", lifespan=lifespan)
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+    cors_kw: dict = {
+        "allow_credentials": True,
+        "allow_methods": ["*"],
+        "allow_headers": ["*"],
+    }
+    if settings.environment == "development":
+        # Acceso por IP del servidor (p. ej. http://192.168.1.50:5173)
+        cors_kw["allow_origin_regex"] = r"https?://[^/]+:5173"
+    else:
+        cors_kw["allow_origins"] = settings.cors_origins
+    app.add_middleware(CORSMiddleware, **cors_kw)
 
     api = APIRouter(prefix="/api/v1")
     api.include_router(auth.router)

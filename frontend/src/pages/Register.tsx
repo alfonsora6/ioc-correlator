@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useI18n } from "@/i18n";
-import { api } from "@/lib/api";
+import { api, getApiErrorMessage } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 export function RegisterPage() {
@@ -33,8 +33,8 @@ export function RegisterPage() {
       setToken(data.access_token);
       toast.success(t("auth.accountCreated"));
       nav("/");
-    } catch {
-      toast.error(t("auth.registrationFailed"));
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t("auth.registrationFailed")));
     } finally {
       setLoading(false);
     }
@@ -62,7 +62,8 @@ export function RegisterPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">{t("auth.password")}</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <Input id="password" type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <p className="text-xs text-secondary">{t("auth.passwordMinLength")}</p>
             </div>
             <Button className="w-full" type="submit" disabled={loading}>
               {loading ? t("auth.creating") : t("auth.createAccount")}

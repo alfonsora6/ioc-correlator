@@ -4,13 +4,14 @@
 
 ## Índice
 1. [Requisitos previos](#1-requisitos-previos)
-2. [Instalación en Debian](#2-instalación-en-debian)
-3. [Configuración del entorno](#3-configuración-del-entorno)
-4. [Despliegue con Docker](#4-despliegue-con-docker)
-5. [Configuración de API Keys](#5-configuración-de-api-keys)
-6. [Uso de la aplicación](#6-uso-de-la-aplicación)
-7. [Solución de problemas](#7-solución-de-problemas)
-8. [Comandos útiles](#8-comandos-útiles)
+2. [Instalación automática (recomendado)](#2-instalación-automática-recomendado)
+3. [Instalación manual en Debian](#3-instalación-manual-en-debian)
+4. [Configuración del entorno](#4-configuración-del-entorno)
+5. [Despliegue con Docker](#5-despliegue-con-docker)
+6. [Configuración de API Keys](#6-configuración-de-api-keys)
+7. [Uso de la aplicación](#7-uso-de-la-aplicación)
+8. [Solución de problemas](#8-solución-de-problemas)
+9. [Comandos útiles](#9-comandos-útiles)
 
 ---
 
@@ -36,7 +37,49 @@
 
 ---
 
-## 2. Instalación en Debian
+## 2. Instalación automática (recomendado)
+
+El script `install.sh` comprueba qué falta (paquetes, Docker, `.env`, contenedores), instala solo lo necesario y al final muestra la **IP y los puertos** de acceso.
+
+### Instalación completa (máquina nueva)
+
+```bash
+cd ioc-correlator
+chmod +x install.sh
+./install.sh
+```
+
+Al terminar verás algo como:
+
+```
+  IP del servidor:  192.168.1.50
+  http://192.168.1.50:5173    (frontend)
+  http://192.168.1.50:8000/docs   (API)
+```
+
+Si Docker pide permisos: `newgrp docker` y `./install.sh --solo-app`.
+
+### Solo aplicación (Docker y dependencias ya listos)
+
+Comprueba `.env`, levanta contenedores y muestra IP + puertos:
+
+```bash
+./install.sh --solo-app
+```
+
+### Si el script no arranca (Windows / CRLF)
+
+```bash
+sed -i 's/\r$//' install.sh
+chmod +x install.sh
+./install.sh --solo-app
+```
+
+> Todos los ficheros del repositorio están en **UTF-8**. No es necesaria ninguna conversión de codificación.
+
+---
+
+## 3. Instalación manual en Debian
 
 ### Paso 1 — Actualizar el sistema
 ```bash
@@ -45,7 +88,7 @@ sudo apt update && sudo apt upgrade -y
 
 ### Paso 2 — Instalar dependencias base
 ```bash
-sudo apt install -y git ca-certificates curl gnupg dos2unix python3 python3-cryptography
+sudo apt install -y git ca-certificates curl gnupg python3 python3-cryptography
 ```
 
 ### Paso 3 — Instalar Docker
@@ -77,7 +120,7 @@ docker compose version
 
 ---
 
-## 3. Configuración del entorno
+## 4. Configuración del entorno
 
 ### Paso 1 — Clonar el repositorio
 ```bash
@@ -100,9 +143,19 @@ ENCKEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.genera
 ```
 
 ### Paso 4 — Aplicar los valores al .env
+
+Docker Compose v2 exige **comillas** en valores con `@`, `://` o `=` (p. ej. `DATABASE_URL` y `ENCRYPTION_KEY`):
+
 ```bash
-sed -i "s|SECRET_KEY=.*|SECRET_KEY=$SECRET|" .env
-sed -i "s|ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$ENCKEY|" .env
+sed -i "s|^SECRET_KEY=.*|SECRET_KEY=\"$SECRET\"|" .env
+sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=\"$ENCKEY\"|" .env
+```
+
+O deja que el script lo genere bien formateado:
+
+```bash
+rm -f .env
+./install.sh --solo-app
 ```
 
 ### Contenido del .env correctamente configurado
@@ -113,7 +166,7 @@ ENVIRONMENT=development
 FRONTEND_URL=http://localhost:5173
 
 # Database
-DATABASE_URL=postgresql+asyncpg://user:pass@postgres:5432/iocdb
+DATABASE_URL=postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb
 
 # Redis
 REDIS_URL=redis://redis:6379/0
@@ -133,7 +186,7 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 
 ---
 
-## 4. Despliegue con Docker
+## 5. Despliegue con Docker
 
 ### Paso 1 — Construir y levantar todos los servicios
 ```bash
@@ -170,12 +223,15 @@ Este paso es obligatorio la primera vez para crear las tablas en la base de dato
 
 ---
 
-## 5. Configuración de API Keys
+## 6. Configuración de API Keys
 
 ### Registro en la aplicación
-1. Abre http://localhost:5173
+
+Abre la app por la **misma URL** que usa el frontend (IP o `localhost:5173`), no mezcles IP en el navegador con API en `localhost:8000`.
+
+1. Abre http://localhost:5173 (o `http://TU_IP:5173`)
 2. Haz clic en **Registro**
-3. Rellena: email, contraseña, nombre completo y nombre de tenant
+3. Rellena: email, contraseña (**mínimo 8 caracteres**), nombre completo y nombre de tenant
 4. Inicia sesión con tus credenciales
 
 ### AbuseIPDB (gratuito)
@@ -209,7 +265,7 @@ Este paso es obligatorio la primera vez para crear las tablas en la base de dato
 
 ---
 
-## 6. Uso de la aplicación
+## 7. Uso de la aplicación
 
 ### Análisis de un IOC individual
 1. Ve a la sección **Analyze**
@@ -262,7 +318,58 @@ La carpeta `/obsidian/` del proyecto es una bóveda de Obsidian con toda la docu
 
 ---
 
-## 7. Solución de problemas
+## 8. Solución de problemas
+
+### Error "crypto.subtle is undefined" al escanear ficheros
+
+Ocurre si abres la app por **HTTP** con la IP (`http://192.168.x.x:5173`): el navegador no expone `crypto.subtle` fuera de HTTPS/localhost. La app usa un fallback (`js-sha256`) desde la versión actual; reconstruye el frontend:
+
+```bash
+docker compose up --build -d frontend
+```
+
+### Error "Unexpected token" al registrarse o iniciar sesión
+
+El navegador recibió **HTML** en lugar de **JSON** (o el backend no responde en el puerto 8000).
+
+1. Comprueba el API: `curl http://TU_IP:8000/health` → debe devolver `{"status":"ok"}`
+2. Reconstruye: `docker compose up --build -d`
+3. Entra por `http://TU_IP:5173` (el frontend llamará a `http://TU_IP:8000`)
+4. Verificación automática: `chmod +x scripts/verify-deploy.sh && ./scripts/verify-deploy.sh TU_IP`
+
+### El script install.sh falla pero el manual a mano sí funciona
+
+1. Usa solo la parte de app (igual que secciones 4–5 del manual):
+
+```bash
+newgrp docker
+./install.sh --solo-app
+```
+
+2. O ejecuta los comandos del manual directamente (secciones 4 y 5); el resultado es el mismo.
+
+| Síntoma | Solución |
+|---------|----------|
+| `/bin/bash^M: bad interpreter` | `sed -i 's/\r$//' install.sh` |
+| `permission denied` con Docker | `newgrp docker` y luego `./install.sh --solo-app` |
+| Migraciones fallan | `sleep 10 && docker compose exec backend alembic upgrade head` |
+
+### Error: unexpected character en .env
+
+Docker Compose v2 falla si el `.env` tiene:
+
+- Fin de línea Windows (`\r`) o BOM UTF-8
+- `DATABASE_URL=...@postgres...` **sin comillas** (el `@` provoca el error)
+- `ENCRYPTION_KEY=...=` **sin comillas** (el `=` final también)
+
+**Solución rápida:**
+
+```bash
+rm -f .env
+./install.sh --solo-app
+```
+
+O valida con: `docker compose config` (no debe mostrar error).
 
 ### Error: Fernet key must be 32 url-safe base64-encoded bytes
 El `ENCRYPTION_KEY` del `.env` no es válido. Genera uno nuevo:
@@ -277,21 +384,11 @@ docker compose up -d
 > **Importante:** Usa `down` + `up` en lugar de `restart` para que los contenedores recarguen las variables del `.env`.
 
 ### Error: unknown instruction: FROM (Dockerfile)
-El Dockerfile tiene codificación UTF-16 (creado en Windows). Ejecuta la conversión completa:
-```bash
-find . -type f -not -path './.git/*' | while read f; do
-  if file "$f" | grep -q "UTF-16"; then
-    iconv -f UTF-16LE -t UTF-8 "$f" -o "$f.tmp" && mv "$f.tmp" "$f"
-  fi
-done
-find . -type f -not -path './.git/*' | xargs dos2unix 2>/dev/null
-docker compose up --build -d
-```
+Suele deberse a un Dockerfile corrupto o con BOM/caracteres extraños. Verifica que el fichero empieza por `FROM` en UTF-8 y reconstruye:
 
-### El .env aparece con caracteres ^@ al editarlo
-Problema de codificación UTF-16. Conviértelo:
 ```bash
-iconv -f UTF-16 -t UTF-8 .env.example > .env
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### Error 403 en Shodan
@@ -324,7 +421,7 @@ docker compose down && docker compose up -d
 
 ---
 
-## 8. Comandos útiles
+## 9. Comandos útiles
 
 ### Gestión de contenedores
 ```bash
@@ -365,15 +462,6 @@ docker compose exec postgres psql -U user -d iocdb
 ### Actualizar la aplicación
 ```bash
 git pull origin main
-
-# Reconvertir archivos por si hay nuevos desde Windows
-find . -type f -not -path './.git/*' | while read f; do
-  if file "$f" | grep -q "UTF-16"; then
-    iconv -f UTF-16LE -t UTF-8 "$f" -o "$f.tmp" && mv "$f.tmp" "$f"
-  fi
-done
-find . -type f -not -path './.git/*' | xargs dos2unix 2>/dev/null
-
 docker compose up --build -d
 docker compose exec backend alembic upgrade head
 ```

@@ -20,7 +20,15 @@ IOC Correlator agrega en paralelo los resultados de **VirusTotal**, **AbuseIPDB*
 
 ## Instalación
 
-La guía paso a paso (Docker, Debian, variables de entorno y solución de problemas) está en [MANUAL-INSTALACION.md](MANUAL-INSTALACION.md).
+**Linux (recomendado)** — mismo flujo que el manual:
+
+```bash
+chmod +x install.sh
+./install.sh          # completo
+./install.sh --solo-app   # solo .env + docker (si Docker ya está listo)
+```
+
+La guía detallada (instalación manual, API keys y solución de problemas) está en [MANUAL-INSTALACION.md](MANUAL-INSTALACION.md). Documentación técnica en la bóveda [obsidian/](obsidian/).
 
 ## Cumplimiento de proveedores
 

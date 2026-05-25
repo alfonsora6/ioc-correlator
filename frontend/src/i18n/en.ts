@@ -41,6 +41,7 @@ export const en: typeof es = {
     hasAccount: "Already have an account?",
     accountCreated: "Account created",
     registrationFailed: "Registration failed",
+    passwordMinLength: "At least 8 characters",
   },
   dashboard: {
     title: "Threat dashboard",
@@ -89,7 +90,7 @@ export const en: typeof es = {
   },
   fileScan: {
     title: "File scan (VirusTotal)",
-    subtitle: "SHA-256 is computed locally; VT is queried first and the file is uploaded only if unknown. Max 650 MB.",
+    subtitle: "SHA-256 is computed locally (works over HTTP too); VT is queried first; upload only if unknown. Max 650 MB.",
     selectFile: "Select file",
     scanFile: "Scan file",
     scanning: "Scanning…",

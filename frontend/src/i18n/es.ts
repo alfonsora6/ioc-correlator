@@ -39,6 +39,7 @@ export const es = {
     hasAccount: "¿Ya tienes cuenta?",
     accountCreated: "Cuenta creada",
     registrationFailed: "Error en el registro",
+    passwordMinLength: "Mínimo 8 caracteres",
   },
   dashboard: {
     title: "Panel de amenazas",
@@ -87,7 +88,7 @@ export const es = {
   },
   fileScan: {
     title: "Escaneo de ficheros (VirusTotal)",
-    subtitle: "Calcula SHA-256 localmente, consulta VT y sube solo si el fichero no existe. Máx. 650 MB.",
+    subtitle: "Calcula SHA-256 localmente (también por HTTP), consulta VT y sube solo si el fichero no existe. Máx. 650 MB.",
     selectFile: "Seleccionar fichero",
     scanFile: "Escanear fichero",
     scanning: "Escaneando…",
