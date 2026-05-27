@@ -31,6 +31,10 @@ Uso:
   ./install.sh --help
 
 Al finalizar muestra las URLs con la IP del servidor y los puertos activos.
+Si luego publicas con dominio + HTTPS (Nginx), revisa:
+  - MANUAL-INSTALACION.md (sección "Configurar dominio y HTTPS")
+  - frontend/vite.config.ts -> preview.allowedHosts=["tu-dominio"]
+  - docker compose up -d --build frontend
 EOF
 }
 
@@ -409,6 +413,11 @@ print_access_urls() {
   echo "    docker compose ps"
   echo "    docker compose logs -f"
   echo "    docker compose down"
+  echo ""
+  echo "  Si publicas con dominio + Nginx + HTTPS:"
+  echo "    1) Añade tu dominio en frontend/vite.config.ts -> preview.allowedHosts"
+  echo "    2) Reconstruye frontend: docker compose up -d --build frontend"
+  echo "    3) Recarga Nginx tras validar config: sudo nginx -t && sudo systemctl reload nginx"
   echo ""
   echo "================================================================"
   echo ""

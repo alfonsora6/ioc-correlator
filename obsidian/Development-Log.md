@@ -37,6 +37,13 @@ tags: [log, progress, decisions, desarrollo]
 - Nota [[Installation]] y [[Deployment]] ampliados en esta bóveda
 - `DATABASE_URL` del manual alineado con `docker-compose.yml` (`iocuser:iocpass`)
 
+## Sesión 006 — Dominio + HTTPS en VPS
+
+- Caso real de despliegue detrás de Nginx con dominio público (`duckdns`)
+- Añadida guía de `preview.allowedHosts` para Vite preview en `MANUAL-INSTALACION.md`
+- `install.sh` ahora recuerda pasos de dominio: `allowedHosts`, rebuild de frontend y recarga de Nginx
+- Bóveda actualizada en [[Installation]] y [[Deployment]] con checklist y síntoma del bloqueo de host
+
 ## Cómo retomar el trabajo
 
 1. Abre esta bóveda en Obsidian

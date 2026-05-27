@@ -69,6 +69,26 @@ docker compose exec backend alembic upgrade head
 - **celery** — worker para análisis por lotes
 - **frontend** — Vite en modo desarrollo
 
+## Dominio + HTTPS (Nginx)
+
+Cuando el frontend se ejecuta con `pnpm preview`, Vite bloquea hosts no permitidos.
+
+### Checklist
+
+1. Permite el dominio en `frontend/vite.config.ts`:
+   - `preview.allowedHosts: ["tu-dominio"]`
+2. Reconstruye frontend:
+   - `docker compose up -d --build frontend`
+3. En Nginx conserva `Host`:
+   - `proxy_set_header Host $host;`
+4. Verifica y recarga Nginx:
+   - `sudo nginx -t && sudo systemctl reload nginx`
+
+### Síntoma típico
+
+- Error en navegador: `Blocked request. This host ("...") is not allowed.`
+- Solución: actualizar `preview.allowedHosts` y reconstruir frontend.
+
 ## Instalación manual (desarrollo)
 
 ### Backend
@@ -130,3 +150,4 @@ Ejemplo `DATABASE_URL` con Compose:
 - [[Architecture]]
 - [[Roadmap]]
 - [[Development-Log]]
+- [[Installation]]

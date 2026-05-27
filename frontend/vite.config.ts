@@ -27,4 +27,7 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    allowedHosts: ["ioc-correlator.duckdns.org"],
+  },
 });

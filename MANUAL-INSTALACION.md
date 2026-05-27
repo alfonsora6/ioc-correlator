@@ -8,10 +8,11 @@
 3. [Instalación manual en Debian](#3-instalación-manual-en-debian)
 4. [Configuración del entorno](#4-configuración-del-entorno)
 5. [Despliegue con Docker](#5-despliegue-con-docker)
-6. [Configuración de API Keys](#6-configuración-de-api-keys)
-7. [Uso de la aplicación](#7-uso-de-la-aplicación)
-8. [Solución de problemas](#8-solución-de-problemas)
-9. [Comandos útiles](#9-comandos-útiles)
+6. [Configurar dominio y HTTPS (Nginx)](#6-configurar-dominio-y-https-nginx)
+7. [Configuración de API Keys](#7-configuración-de-api-keys)
+8. [Uso de la aplicación](#8-uso-de-la-aplicación)
+9. [Solución de problemas](#9-solución-de-problemas)
+10. [Comandos útiles](#10-comandos-útiles)
 
 ---
 
@@ -223,7 +224,68 @@ Este paso es obligatorio la primera vez para crear las tablas en la base de dato
 
 ---
 
-## 6. Configuración de API Keys
+## 6. Configurar dominio y HTTPS (Nginx)
+
+Si vas a publicar la app con un dominio (por ejemplo `ioc-correlator.duckdns.org`) y Nginx en `80/443`, sigue estos pasos:
+
+### Paso 1 — Permitir el host en Vite preview
+
+El servicio `frontend` usa `pnpm preview`, y Vite bloquea hosts no autorizados.
+
+En `frontend/vite.config.ts`, añade:
+
+```ts
+preview: {
+  allowedHosts: ["ioc-correlator.duckdns.org"],
+},
+```
+
+Opcional (si quieres permitir cualquier subdominio DuckDNS):
+
+```ts
+preview: {
+  allowedHosts: [".duckdns.org"],
+},
+```
+
+### Paso 2 — Reconstruir solo frontend
+
+```bash
+docker compose up -d --build frontend
+```
+
+### Paso 3 — Configurar proxy en Nginx
+
+Proxy del dominio hacia el frontend (`127.0.0.1:5173`) y conserva el host:
+
+```nginx
+server {
+    listen 80;
+    server_name ioc-correlator.duckdns.org;
+    location / {
+        proxy_pass http://127.0.0.1:5173;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+
+Con HTTPS activo (Certbot), aplica y recarga:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Paso 4 — URL pública recomendada
+
+- App: `https://ioc-correlator.duckdns.org`
+- API docs (si publicas backend también por Nginx): `https://ioc-correlator.duckdns.org/docs`
+
+---
+
+## 7. Configuración de API Keys
 
 ### Registro en la aplicación
 
@@ -265,7 +327,7 @@ Abre la app por la **misma URL** que usa el frontend (IP o `localhost:5173`), no
 
 ---
 
-## 7. Uso de la aplicación
+## 8. Uso de la aplicación
 
 ### Análisis de un IOC individual
 1. Ve a la sección **Analyze**
@@ -318,7 +380,7 @@ La carpeta `/obsidian/` del proyecto es una bóveda de Obsidian con toda la docu
 
 ---
 
-## 8. Solución de problemas
+## 9. Solución de problemas
 
 ### Error "crypto.subtle is undefined" al escanear ficheros
 
@@ -327,6 +389,28 @@ Ocurre si abres la app por **HTTP** con la IP (`http://192.168.x.x:5173`): el na
 ```bash
 docker compose up --build -d frontend
 ```
+
+### Error "Blocked request. This host is not allowed" (Vite preview)
+
+Pasa al entrar por dominio detrás de Nginx/HTTPS cuando `allowedHosts` no incluye tu host.
+
+1. Edita `frontend/vite.config.ts`:
+
+```ts
+preview: {
+  allowedHosts: ["TU_DOMINIO"],
+},
+```
+
+2. Reconstruye frontend:
+
+```bash
+docker compose up -d --build frontend
+```
+
+3. Verifica proxy en Nginx:
+   - `proxy_set_header Host $host;`
+   - `server_name` coincide con tu dominio
 
 ### Error "Unexpected token" al registrarse o iniciar sesión
 
@@ -421,7 +505,7 @@ docker compose down && docker compose up -d
 
 ---
 
-## 9. Comandos útiles
+## 10. Comandos útiles
 
 ### Gestión de contenedores
 ```bash
