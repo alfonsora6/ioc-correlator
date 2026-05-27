@@ -2,15 +2,21 @@ import axios, { AxiosError } from "axios";
 import { useAuthStore } from "@/store/auth";
 
 /**
- * URL del API en el mismo host que el navegador, puerto 8000.
- * Así funciona en Debian al entrar por IP (p. ej. http://192.168.1.10:5173 → API :8000).
+ * Resolución de API base:
+ * - Si VITE_API_URL es URL fija, se usa esa.
+ * - Si VITE_API_URL=auto y estamos en :5173, usa el backend en :8000 (modo local/dev).
+ * - Si VITE_API_URL=auto y estamos en otro puerto (80/443, proxy), usa mismo origen.
  * VITE_API_URL=auto activa este modo; un URL fijo lo sobreescribe.
  */
 export function getApiBaseURL(): string {
   const env = import.meta.env.VITE_API_URL?.trim();
   if (env && env !== "auto") return env.replace(/\/$/, "");
   if (typeof window !== "undefined" && window.location?.hostname) {
-    return `${window.location.protocol}//${window.location.hostname}:8000`;
+    const { protocol, hostname, port } = window.location;
+    if (port === "5173") {
+      return `${protocol}//${hostname}:8000`;
+    }
+    return "";
   }
   return "http://127.0.0.1:8000";
 }
@@ -31,7 +37,7 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof AxiosError) {
     const data = err.response?.data;
     if (typeof data === "string" && data.trimStart().startsWith("<")) {
-      return "El API no respondió con JSON (¿backend activo en el puerto 8000?).";
+      return "El API no respondió con JSON (revisa proxy /api o backend en :8000).";
     }
     const detail = data && typeof data === "object" && "detail" in data ? (data as { detail: unknown }).detail : undefined;
     if (typeof detail === "string") return detail;
@@ -42,7 +48,7 @@ export function getApiErrorMessage(err: unknown, fallback: string): string {
         .join(", ");
     }
     if (err.message.includes("Unexpected token")) {
-      return "Respuesta inválida del API. Comprueba: docker compose ps y curl http://TU_IP:8000/health";
+      return "Respuesta inválida del API. Comprueba backend/proxy: docker compose ps y endpoint /health";
     }
   }
   return fallback;

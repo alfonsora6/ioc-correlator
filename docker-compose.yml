@@ -29,11 +29,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend:/app
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb
       REDIS_URL: redis://redis:6379/0
@@ -42,7 +42,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production-min-32-chars}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-vI-GlSLc75utgRnF_-KBMPwpyrXe-YHjmhtBqOSzeC8=}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       VT_CLIENT_ID: ${VT_CLIENT_ID:-}
       VT_CLIENT_SECRET: ${VT_CLIENT_SECRET:-}
       VT_REDIRECT_URI: ${VT_REDIRECT_URI:-http://localhost:8000/api/v1/auth/virustotal/callback}
@@ -67,7 +67,7 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production-min-32-chars}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-vI-GlSLc75utgRnF_-KBMPwpyrXe-YHjmhtBqOSzeC8=}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,14 +80,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    command: pnpm dev --host 0.0.0.0
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+    command: sh -c "pnpm build && pnpm preview --host 0.0.0.0 --port 5173"
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     environment:
-      # auto = en el navegador usa http://<mismo-host>:8000 (Debian por IP)
+      # auto:
+      # - en desarrollo (puerto 5173) usa http://<mismo-host>:8000
+      # - en producción (80/443 o proxy) usa mismo origen (/api)
       VITE_API_URL: auto
       VITE_PROXY_TARGET: http://backend:8000
     depends_on:
