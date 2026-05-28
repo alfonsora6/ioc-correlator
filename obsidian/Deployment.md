@@ -89,6 +89,13 @@ Cuando el frontend se ejecuta con `pnpm preview`, Vite bloquea hosts no permitid
 - Error en navegador: `Blocked request. This host ("...") is not allowed.`
 - Solución: actualizar `preview.allowedHosts` y reconstruir frontend.
 
+### WebSocket en lotes (batch)
+
+- Ruta: `/api/v1/batch/ws/{job_id}`
+- En Nginx: `proxy_http_version 1.1`, `Upgrade`, `Connection $connection_upgrade`
+- Sin esto: toast *"Error de WebSocket"* tras subir el fichero
+- Ver `MANUAL-INSTALACION.md` sección 6 (map + location `/api`)
+
 ## Instalación manual (desarrollo)
 
 ### Backend

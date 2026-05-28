@@ -256,20 +256,53 @@ docker compose up -d --build frontend
 
 ### Paso 3 — Configurar proxy en Nginx
 
-Proxy del dominio hacia el frontend (`127.0.0.1:5173`) y conserva el host:
+El análisis por lotes usa **WebSocket** (`/api/v1/batch/ws/...`). Nginx debe reenviar el upgrade; si no, verás *"Error de WebSocket"*.
+
+En `/etc/nginx/nginx.conf`, dentro del bloque `http { ... }`, añade (una sola vez):
+
+```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+```
+
+Configuración recomendada (API directo al backend, UI al frontend):
 
 ```nginx
 server {
     listen 80;
     server_name ioc-correlator.duckdns.org;
+
+    location /api {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 86400;
+    }
+
+    location /health {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:5173;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 ```
+
+> Si solo tienes `location /` hacia el puerto 5173, incluye igualmente las cabeceras `Upgrade` y `Connection` en ese bloque.
 
 Con HTTPS activo (Certbot), aplica y recarga:
 
@@ -411,6 +444,16 @@ docker compose up -d --build frontend
 3. Verifica proxy en Nginx:
    - `proxy_set_header Host $host;`
    - `server_name` coincide con tu dominio
+   - Cabeceras WebSocket: `Upgrade` y `Connection $connection_upgrade` (ver sección 6)
+
+### Error "Error de WebSocket" en análisis por lotes
+
+El upload del fichero puede funcionar, pero el progreso en tiempo real falla si Nginx no reenvía WebSockets.
+
+1. Añade el `map $http_upgrade` y las cabeceras de la sección 6.
+2. Comprueba que `/api` llega al backend (`127.0.0.1:8000`) o que el proxy a `5173` incluye upgrade.
+3. Recarga Nginx: `sudo nginx -t && sudo systemctl reload nginx`
+4. Reconstruye frontend si acabas de actualizar el código: `docker compose up -d --build frontend`
 
 ### Error "Unexpected token" al registrarse o iniciar sesión
 

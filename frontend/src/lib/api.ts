@@ -21,6 +21,25 @@ export function getApiBaseURL(): string {
   return "http://127.0.0.1:8000";
 }
 
+/** URL base para WebSocket (ws/wss), alineada con getApiBaseURL(). */
+export function getWebSocketBaseURL(): string {
+  const httpBase = getApiBaseURL();
+  if (typeof window === "undefined") {
+    return "ws://127.0.0.1:8000";
+  }
+  if (!httpBase) {
+    const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    return `${proto}//${window.location.host}`;
+  }
+  try {
+    const url = new URL(httpBase);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    return url.origin;
+  } catch {
+    return httpBase.replace(/^https:\/\//, "wss://").replace(/^http:\/\//, "ws://");
+  }
+}
+
 const baseURL = getApiBaseURL();
 
 export const api = axios.create({

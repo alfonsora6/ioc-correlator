@@ -1,9 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/i18n";
-import { api, getApiBaseURL } from "@/lib/api";
+import { api, getWebSocketBaseURL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 export function BatchPage() {
@@ -12,8 +12,6 @@ export function BatchPage() {
   const [jobId, setJobId] = useState<string | null>(null);
   const [progress, setProgress] = useState<{ processed: number; total: number; status: string } | null>(null);
   const [uploading, setUploading] = useState(false);
-
-  const wsBase = useMemo(() => getApiBaseURL().replace(/^http/, "ws"), []);
 
   async function onPick() {
     const f = inputRef.current?.files?.[0];
@@ -36,7 +34,9 @@ export function BatchPage() {
 
   function connectWs(id: string) {
     const token = useAuthStore.getState().accessToken;
-    const ws = new WebSocket(`${wsBase}/api/v1/batch/ws/${id}?token=${encodeURIComponent(token || "")}`);
+    const ws = new WebSocket(
+      `${getWebSocketBaseURL()}/api/v1/batch/ws/${id}?token=${encodeURIComponent(token || "")}`,
+    );
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
       if (msg.error) {
