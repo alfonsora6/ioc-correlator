@@ -4,7 +4,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    # Empty env values (VAR=) must not override defaults — otherwise int fields like
+    # REFRESH_TOKEN_EXPIRE_DAYS= raise ValidationError instead of using 7.
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        env_ignore_empty=True,
+    )
 
     secret_key: str = "changeme"
     environment: str = "development"
@@ -21,7 +28,7 @@ class Settings(BaseSettings):
     vt_client_secret: str = ""
     vt_redirect_uri: str = "http://localhost:8000/api/v1/auth/virustotal/callback"
 
-    access_token_expire_minutes: int = 15
+    access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
     @property

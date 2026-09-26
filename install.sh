@@ -213,7 +213,7 @@ defaults = {
     "VT_CLIENT_ID": "",
     "VT_CLIENT_SECRET": "",
     "VT_REDIRECT_URI": "http://localhost:8000/api/v1/auth/virustotal/callback",
-    "ACCESS_TOKEN_EXPIRE_MINUTES": "15",
+    "ACCESS_TOKEN_EXPIRE_MINUTES": "30",
     "REFRESH_TOKEN_EXPIRE_DAYS": "7",
 }
 
@@ -240,6 +240,10 @@ if path.exists():
         existing[key] = val
 
 data = {**defaults, **existing}
+# Present-but-empty values must not wipe non-empty defaults (Compose/Pydantic int fields).
+for key, default in defaults.items():
+    if data.get(key) == "" and default != "":
+        data[key] = default
 
 need_secrets = regen or not data.get("SECRET_KEY") or data.get("SECRET_KEY") == "changeme"
 need_secrets = need_secrets or not data.get("ENCRYPTION_KEY")
