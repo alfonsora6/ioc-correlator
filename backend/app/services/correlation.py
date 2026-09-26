@@ -55,6 +55,7 @@ async def run_correlation(
         labels.append("otx")
 
     if not tasks:
+        # Config state (missing keys), not threat-intel — never cache.
         results = [
             {"provider": "virustotal", "available": False, "error": "no_api_key", "score": None},
             {"provider": "abuseipdb", "available": False, "error": "no_api_key", "score": None},
@@ -62,15 +63,13 @@ async def run_correlation(
             {"provider": "otx", "available": False, "error": "no_api_key", "score": None},
         ]
         score, severity = aggregate_scores(results)
-        payload = {
+        return {
             "ioc_type": ioc_type,
             "ioc_value": normalized,
             "score": score,
             "severity": severity,
             "sources": per_source_severity(results),
         }
-        await set_cached(redis_client, tid, ioc_type, normalized, payload)
-        return payload
 
     gathered = await asyncio.gather(*tasks, return_exceptions=True)
     results: list[dict[str, Any]] = []
