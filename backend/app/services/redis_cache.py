@@ -27,3 +27,13 @@ async def set_cached(
     await redis_client.setex(
         cache_key(tenant_id, ioc_type, normalized), CACHE_TTL_SECONDS, json.dumps(payload)
     )
+
+
+async def invalidate_tenant_cache(redis_client: redis.Redis, tenant_id: str) -> int:
+    """Delete all IOC correlation cache entries for a tenant via SCAN (never KEYS)."""
+    pattern = f"ioc:{tenant_id}:*"
+    deleted = 0
+    async for key in redis_client.scan_iter(match=pattern, count=100):
+        await redis_client.delete(key)
+        deleted += 1
+    return deleted

@@ -16,6 +16,7 @@ from app.db.session import get_db
 from app.schemas.api_key import ApiKeyPublic, ApiKeyUpsert
 from app.services import intel_clients
 from app.services.encryption import decrypt_secret, encrypt_secret
+from app.services.redis_cache import invalidate_tenant_cache
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 
@@ -43,6 +44,7 @@ async def upsert_key(
     body: ApiKeyUpsert,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis=Depends(get_redis),
 ):
     if provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail="Unknown provider")
@@ -63,6 +65,7 @@ async def upsert_key(
                 status="pending",
             )
         )
+    await invalidate_tenant_cache(redis, str(user.tenant_id))
     return {"ok": True}
 
 
@@ -71,6 +74,7 @@ async def delete_key(
     provider: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    redis=Depends(get_redis),
 ):
     if provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail="Unknown provider")
@@ -80,6 +84,7 @@ async def delete_key(
     row = q.scalar_one_or_none()
     if row:
         await db.execute(delete(ApiKey).where(ApiKey.id == row.id))
+    await invalidate_tenant_cache(redis, str(user.tenant_id))
     return {"ok": True}
 
 
