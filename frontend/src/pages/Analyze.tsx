@@ -9,7 +9,8 @@ import { useI18n } from "@/i18n";
 import type { TranslationKey } from "@/i18n";
 import { api } from "@/lib/api";
 import { severityClass } from "@/lib/severity";
-import { formatScanError, scanVtFile, type VtFileScanResult } from "@/lib/vtFileScan";
+import { formatScanError } from "@/lib/vtFileScan";
+import { useVtFileScanStore, type VtScanPhase } from "@/store/vtFileScan";
 
 type Source = { provider: string; available: boolean; score?: number | null; severity?: string; error?: string };
 
@@ -27,9 +28,13 @@ export function AnalyzePage() {
     ioc_type: string;
   } | null>(null);
 
-  const [fileScanning, setFileScanning] = useState(false);
-  const [filePhase, setFilePhase] = useState("");
-  const [fileResult, setFileResult] = useState<VtFileScanResult | null>(null);
+  const fileScanning = useVtFileScanStore((s) => s.scanning);
+  const filePhase = useVtFileScanStore((s) => s.phase);
+  const filePhaseDetail = useVtFileScanStore((s) => s.phaseDetail);
+  const fileResult = useVtFileScanStore((s) => s.result);
+  const fileName = useVtFileScanStore((s) => s.filename);
+  const startScan = useVtFileScanStore((s) => s.startScan);
+  const ensurePolling = useVtFileScanStore((s) => s.ensurePolling);
 
   const [history, setHistory] = useState<
     { id: string; ioc_value: string; ioc_type: string; score: number; severity: string; created_at: string }[]
@@ -43,6 +48,24 @@ export function AnalyzePage() {
   useEffect(() => {
     refreshHistory().catch(() => {});
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const outcome = await ensurePolling();
+      if (cancelled) return;
+      if (outcome === "completed") {
+        toast.success(t("fileScan.complete"));
+      } else if (outcome === "failed") {
+        const err = useVtFileScanStore.getState().lastError;
+        toast.error(formatScanError(err, t("fileScan.failed")));
+        useVtFileScanStore.setState({ lastError: null });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [ensurePolling, t]);
 
   async function onAnalyze(e: React.FormEvent) {
     e.preventDefault();
@@ -59,7 +82,7 @@ export function AnalyzePage() {
     }
   }
 
-  function phaseLabel(phase: string, detail?: string) {
+  function phaseLabel(phase: VtScanPhase, detail?: string) {
     if (phase === "hashing") return t("fileScan.phaseHashing");
     if (phase === "lookup") return detail ? `${t("fileScan.phaseLookup")} ${detail.slice(0, 12)}…` : t("fileScan.phaseLookup");
     if (phase === "uploading") return t("fileScan.phaseUploading");
@@ -70,21 +93,14 @@ export function AnalyzePage() {
   async function onScanFile() {
     const file = fileInputRef.current?.files?.[0];
     if (!file) return;
-    setFileScanning(true);
-    setFileResult(null);
-    setFilePhase(t("fileScan.phaseHashing"));
+    if (useVtFileScanStore.getState().scanning) return;
     try {
-      const { result: scanResult, cached } = await scanVtFile(file, (phase, detail) => {
-        setFilePhase(phaseLabel(phase, detail));
-      });
-      setFileResult(scanResult);
+      const { cached } = await startScan(file);
       toast.success(cached ? t("fileScan.knownFile") : t("fileScan.complete"));
     } catch (err) {
+      if (err instanceof Error && err.message === "scan_already_running") return;
       console.error("VT file scan failed:", err);
       toast.error(formatScanError(err, t("fileScan.failed")));
-    } finally {
-      setFileScanning(false);
-      setFilePhase("");
     }
   }
 
@@ -133,7 +149,14 @@ export function AnalyzePage() {
             <Button type="button" onClick={onScanFile} disabled={fileScanning}>
               {fileScanning ? t("fileScan.scanning") : t("fileScan.scanFile")}
             </Button>
-            {filePhase && <span className="text-sm text-muted">{filePhase}</span>}
+            {fileScanning && fileName && (
+              <span className="text-sm text-secondary font-mono truncate max-w-[14rem]" title={fileName}>
+                {fileName}
+              </span>
+            )}
+            {filePhase && (
+              <span className="text-sm text-muted">{phaseLabel(filePhase, filePhaseDetail || undefined)}</span>
+            )}
           </div>
         </CardContent>
       </Card>
