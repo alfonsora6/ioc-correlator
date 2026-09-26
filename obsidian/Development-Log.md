@@ -44,6 +44,21 @@ tags: [log, progress, decisions, desarrollo]
 - `install.sh` ahora recuerda pasos de dominio: `allowedHosts`, rebuild de frontend y recarga de Nginx
 - Bóveda actualizada en [[Installation]] y [[Deployment]] con checklist y síntoma del bloqueo de host
 
+## Sesión 007 — Caché IOC + JWT access 30 min
+
+- **Bug de caché:** `run_correlation` ya no guarda en Redis el resultado cuando no hay ninguna clave API (`if not tasks` / `no_api_key`)
+- Con al menos una fuente real sí se cachea el agregado completo
+- **Invalidación:** `upsert_key` / `delete_key` llaman a `invalidate_tenant_cache` (SCAN `ioc:{tenant_id}:*`)
+- Tests en `backend/tests/test_correlation_cache.py`
+- Access token JWT: default `ACCESS_TOKEN_EXPIRE_MINUTES` de 15 → **30** (`config.py`, `.env.example`, manual); refresh sigue en 7 días
+- Bóveda: [[Auth-Flow]], [[API-Integrations]], [[Architecture]]
+
+## Sesión 008 — `pnpm-lock.yaml` del frontend
+
+- Generado `frontend/pnpm-lock.yaml` (`lockfileVersion: '9.0'`) con **pnpm@9.15.0** vía `corepack pnpm` (misma versión que `frontend/Dockerfile`)
+- En Windows, `corepack enable` puede fallar por EPERM en `Program Files`; usar `corepack prepare pnpm@9.15.0` + `corepack pnpm install` en `frontend/`
+- `package.json` no se modificó
+
 ## Cómo retomar el trabajo
 
 1. Abre esta bóveda en Obsidian

@@ -49,6 +49,10 @@ tags: [api, integrations, virustotal, abuseipdb, shodan, otx, integraciones]
 - Clave: `ioc:{tenant_id}:{tipo}:{valor_normalizado}`
 - TTL: 3600 segundos (1 hora)
 - Reduce llamadas duplicadas y respeta cuotas de los proveedores
+- **No se cachea** el resultado cuando el tenant no tiene ninguna clave API (`no_api_key` en las 4 fuentes): es estado de configuración, no threat intel
+- Si hay al menos una fuente consultada, sí se cachea el payload completo (incluidas entradas `no_api_key` de fuentes no configuradas)
+- Al **upsert o delete** de una clave API del tenant se invalida toda su caché IOC con `SCAN` sobre `ioc:{tenant_id}:*` (`invalidate_tenant_cache` en `redis_cache.py`)
+- Código: `backend/app/services/correlation.py`, `redis_cache.py`, `api/api_keys.py`
 
 ## Notas relacionadas
 

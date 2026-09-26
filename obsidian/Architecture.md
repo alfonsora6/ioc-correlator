@@ -33,6 +33,7 @@ graph TD
 1. El usuario envía un IOC desde el frontend.
 2. El backend detecta el tipo (IP, dominio, URL, hash).
 3. Se consulta la caché Redis por tenant; si no hay hit, se llaman en paralelo las APIs configuradas.
+   - Sin claves API no se escribe en caché; al añadir/quitar una clave se invalida `ioc:{tenant_id}:*`.
 4. Se agregan puntuaciones (pesos 40/30/20/10) y se mapea severidad.
 5. Se persiste en `analyses` y se devuelve al cliente.
 

@@ -30,9 +30,10 @@ sequenceDiagram
 
 ## Refresco de token
 
-- El access token expira en 15 minutos (configurable).
+- El access token expira en 30 minutos (configurable con `ACCESS_TOKEN_EXPIRE_MINUTES`).
 - Ante un 401, el frontend llama a `POST /api/v1/auth/refresh` con la cookie httpOnly.
 - El backend valida el refresh en BD, lo rota y emite un nuevo access token.
+- El refresh token sigue siendo de 7 días (`REFRESH_TOKEN_EXPIRE_DAYS`).
 
 ## Cierre de sesión
 
