@@ -130,6 +130,8 @@ export const es = {
     uploadFailed: "Error al subir",
     exportFailed: "Error al exportar",
     wsError: "Error de WebSocket",
+    dropHint: "Arrastra un archivo aquí o usa Examinar",
+    invalidFileType: "Tipo no soportado. Usa .txt, .csv o .log.",
   },
   apiKeys: {
     title: "Claves API",

@@ -132,6 +132,8 @@ export const en: typeof es = {
     uploadFailed: "Upload failed",
     exportFailed: "Export failed",
     wsError: "WebSocket error",
+    dropHint: "Drag a file here or use Browse",
+    invalidFileType: "Unsupported type. Use .txt, .csv, or .log.",
   },
   apiKeys: {
     title: "API keys",

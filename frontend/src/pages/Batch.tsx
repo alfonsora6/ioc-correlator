@@ -1,53 +1,101 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useI18n } from "@/i18n";
-import { api, getWebSocketBaseURL } from "@/lib/api";
-import { useAuthStore } from "@/store/auth";
+import { api } from "@/lib/api";
+import { useBatchJobStore } from "@/store/batchJob";
+import { cn } from "@/lib/utils";
+
+const ALLOWED_EXTENSIONS = new Set([".txt", ".csv", ".log"]);
+
+function fileExtension(name: string): string {
+  const i = name.lastIndexOf(".");
+  return i >= 0 ? name.slice(i).toLowerCase() : "";
+}
+
+function isAllowedBatchFile(file: File): boolean {
+  return ALLOWED_EXTENSIONS.has(fileExtension(file.name));
+}
 
 export function BatchPage() {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [jobId, setJobId] = useState<string | null>(null);
-  const [progress, setProgress] = useState<{ processed: number; total: number; status: string } | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const dragDepth = useRef(0);
+
+  const jobId = useBatchJobStore((s) => s.jobId);
+  const progress = useBatchJobStore((s) => s.progress);
+  const uploading = useBatchJobStore((s) => s.uploading);
+  const filename = useBatchJobStore((s) => s.filename);
+  const startUpload = useBatchJobStore((s) => s.startUpload);
+  const ensureConnected = useBatchJobStore((s) => s.ensureConnected);
+
+  useEffect(() => {
+    ensureConnected();
+  }, [ensureConnected]);
+
+  const assignFileToInput = useCallback(
+    (file: File) => {
+      if (!isAllowedBatchFile(file)) {
+        toast.error(t("batch.invalidFileType"));
+        return;
+      }
+      const input = inputRef.current;
+      if (!input) return;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+    },
+    [t],
+  );
 
   async function onPick() {
     const f = inputRef.current?.files?.[0];
     if (!f) return;
-    setUploading(true);
+    if (!isAllowedBatchFile(f)) {
+      toast.error(t("batch.invalidFileType"));
+      return;
+    }
     try {
-      const fd = new FormData();
-      fd.append("file", f);
-      const { data } = await api.post<{ job_id: string; total_iocs: number }>("/api/v1/batch/upload", fd);
-      setJobId(data.job_id);
-      setProgress({ processed: 0, total: data.total_iocs, status: "pending" });
+      await startUpload(f);
       toast.success(t("batch.queued"));
-      connectWs(data.job_id);
     } catch {
       toast.error(t("batch.uploadFailed"));
-    } finally {
-      setUploading(false);
     }
   }
 
-  function connectWs(id: string) {
-    const token = useAuthStore.getState().accessToken;
-    const ws = new WebSocket(
-      `${getWebSocketBaseURL()}/api/v1/batch/ws/${id}?token=${encodeURIComponent(token || "")}`,
-    );
-    ws.onmessage = (ev) => {
-      const msg = JSON.parse(ev.data);
-      if (msg.error) {
-        toast.error(msg.error);
-        ws.close();
-        return;
-      }
-      setProgress({ processed: msg.processed, total: msg.total, status: msg.status });
-      if (msg.status === "done" || msg.status === "error") ws.close();
-    };
-    ws.onerror = () => toast.error(t("batch.wsError"));
+  function onDragEnter(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current += 1;
+    setDragOver(true);
+  }
+
+  function onDragLeave(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0;
+      setDragOver(false);
+    }
+  }
+
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+  }
+
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragDepth.current = 0;
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    assignFileToInput(file);
   }
 
   return (
@@ -61,37 +109,51 @@ export function BatchPage() {
         <CardHeader>
           <CardTitle>{t("batch.upload")}</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3 md:flex-row md:items-center">
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".txt,.csv,.log,text/plain"
-            className="text-sm text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700"
-          />
-          <Button onClick={onPick} disabled={uploading}>
-            {uploading ? t("batch.uploading") : t("batch.startBatch")}
-          </Button>
-          {jobId && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={async () => {
-                try {
-                  const r = await api.get(`/api/v1/batch/${jobId}/export.csv`, { responseType: "blob" });
-                  const url = URL.createObjectURL(r.data);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `batch-${jobId}.csv`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                } catch {
-                  toast.error(t("batch.exportFailed"));
-                }
-              }}
-            >
-              {t("batch.downloadCsv")}
+        <CardContent>
+          <div
+            onDragEnter={onDragEnter}
+            onDragLeave={onDragLeave}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            className={cn(
+              "flex flex-col gap-3 rounded-xl border-2 border-dashed p-4 transition-colors md:flex-row md:items-center",
+              dragOver
+                ? "border-brand-500 bg-brand-500/10"
+                : "border-[var(--border)] bg-transparent",
+            )}
+          >
+            <p className="text-sm text-secondary md:mr-auto">{t("batch.dropHint")}</p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".txt,.csv,.log,text/plain"
+              className="text-sm text-primary file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-brand-700"
+            />
+            <Button onClick={onPick} disabled={uploading}>
+              {uploading ? t("batch.uploading") : t("batch.startBatch")}
             </Button>
-          )}
+            {jobId && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={async () => {
+                  try {
+                    const r = await api.get(`/api/v1/batch/${jobId}/export.csv`, { responseType: "blob" });
+                    const url = URL.createObjectURL(r.data);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `batch-${jobId}.csv`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  } catch {
+                    toast.error(t("batch.exportFailed"));
+                  }
+                }}
+              >
+                {t("batch.downloadCsv")}
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -103,6 +165,11 @@ export function BatchPage() {
           <CardContent className="space-y-2">
             <div className="text-sm text-secondary">
               {t("batch.status")}: <span className="font-semibold text-primary">{progress.status}</span>
+              {filename && (
+                <span className="ml-2 font-mono text-xs text-muted truncate" title={filename}>
+                  ({filename})
+                </span>
+              )}
             </div>
             <div className="progress-track">
               <div
