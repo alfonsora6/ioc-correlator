@@ -183,6 +183,17 @@ VT_REDIRECT_URI=http://localhost:8000/api/v1/auth/virustotal/callback
 # JWT
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Rate limiting de autenticación (Redis; opcionales, tienen defaults en el backend)
+# AUTH_RATE_LIMIT_LOGIN=5
+# AUTH_RATE_LIMIT_LOGIN_WINDOW_SECONDS=60
+# Tope por IP compartida: con Docker todos ven 172.18.0.1; un valor bajo = bloqueo global.
+# El límite efectivo contra fuerza bruta es IP+email (AUTH_RATE_LIMIT_LOGIN).
+# AUTH_RATE_LIMIT_LOGIN_IP=200
+# AUTH_RATE_LIMIT_LOGIN_IP_WINDOW_SECONDS=60
+# AUTH_RATE_LIMIT_REGISTER=10
+# AUTH_RATE_LIMIT_REGISTER_WINDOW_SECONDS=60
+# AUTH_RATE_LIMIT_TRUST_PROXY=false
 ```
 
 ---
