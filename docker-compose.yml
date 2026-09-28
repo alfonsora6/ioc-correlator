@@ -2,23 +2,19 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: iocuser
-      POSTGRES_PASSWORD: iocpass
-      POSTGRES_DB: iocdb
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER es obligatoria}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD es obligatoria}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB es obligatoria}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U iocuser -d iocdb"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,12 +31,12 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production-min-32-chars}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-vI-GlSLc75utgRnF_-KBMPwpyrXe-YHjmhtBqOSzeC8=}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY es obligatoria}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY es obligatoria}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       ENVIRONMENT: ${ENVIRONMENT:-production}
       VT_CLIENT_ID: ${VT_CLIENT_ID:-}
@@ -60,12 +56,12 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      DATABASE_URL: postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production-min-32-chars}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-vI-GlSLc75utgRnF_-KBMPwpyrXe-YHjmhtBqOSzeC8=}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY es obligatoria}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?ENCRYPTION_KEY es obligatoria}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:5173}
       ENVIRONMENT: ${ENVIRONMENT:-production}
     depends_on:

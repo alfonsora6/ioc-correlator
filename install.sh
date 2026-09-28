@@ -13,11 +13,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-$SCRIPT_DIR}"
 SKIP_SYSTEM=0
 
-# Puertos publicados (docker-compose.yml)
+# Puertos publicados en el host (docker-compose.yml)
+# postgres/redis solo en red interna Docker; acceso vía: docker compose exec ...
 PORT_FRONTEND=5173
 PORT_BACKEND=8000
-PORT_POSTGRES=5432
-PORT_REDIS=6379
 
 log()  { echo "[install] $*"; }
 warn() { echo "[install] AVISO: $*" >&2; }
@@ -188,6 +187,7 @@ import re
 import secrets
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 try:
     from cryptography.fernet import Fernet
@@ -197,17 +197,34 @@ except ImportError:
 
 path = Path(sys.argv[1])
 regen = sys.argv[2] == "1"
+had_existing_file = path.exists()
 
 def q(value: str) -> str:
     """Comillas dobles: obligatorio para URLs (@, :), Fernet (=) y Compose v2."""
     escaped = value.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
 
+def parse_database_url(url: str):
+    if not url:
+        return None
+    normalized = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    parsed = urlparse(normalized)
+    if not parsed.username:
+        return None
+    return {
+        "user": unquote(parsed.username),
+        "password": unquote(parsed.password or ""),
+        "db": (parsed.path or "/").lstrip("/") or "iocdb",
+    }
+
 defaults = {
     "SECRET_KEY": "",
     "ENVIRONMENT": "development",
     "FRONTEND_URL": "http://localhost:5173",
-    "DATABASE_URL": "postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb",
+    "POSTGRES_USER": "iocuser",
+    "POSTGRES_PASSWORD": "",
+    "POSTGRES_DB": "iocdb",
+    "DATABASE_URL": "",
     "REDIS_URL": "redis://redis:6379/0",
     "ENCRYPTION_KEY": "",
     "VT_CLIENT_ID": "",
@@ -218,7 +235,7 @@ defaults = {
 }
 
 existing = {}
-if path.exists():
+if had_existing_file:
     raw = path.read_bytes()
     if raw.startswith(b"\xff\xfe") or raw.startswith(b"\xfe\xff"):
         text = raw.decode("utf-16")
@@ -245,12 +262,35 @@ for key, default in defaults.items():
     if data.get(key) == "" and default != "":
         data[key] = default
 
-need_secrets = regen or not data.get("SECRET_KEY") or data.get("SECRET_KEY") == "changeme"
-need_secrets = need_secrets or not data.get("ENCRYPTION_KEY")
-
-if need_secrets:
+# SECRET_KEY y ENCRYPTION_KEY se generan por separado. Nunca rotar ENCRYPTION_KEY
+# si ya existe: invalidaría el cifrado Fernet de las API keys en la base de datos.
+if regen or not data.get("SECRET_KEY") or data.get("SECRET_KEY") == "changeme":
     data["SECRET_KEY"] = secrets.token_urlsafe(32)[:32]
+if not data.get("ENCRYPTION_KEY"):
     data["ENCRYPTION_KEY"] = Fernet.generate_key().decode()
+
+# Credenciales Postgres: no regenerar si ya existen (initdb solo aplica POSTGRES_PASSWORD
+# la primera vez; cambiarla rompe el volumen pgdata).
+if not data.get("POSTGRES_PASSWORD"):
+    parsed = parse_database_url(existing.get("DATABASE_URL", "") or data.get("DATABASE_URL", ""))
+    if parsed and parsed["password"]:
+        data["POSTGRES_USER"] = existing.get("POSTGRES_USER") or parsed["user"] or "iocuser"
+        data["POSTGRES_PASSWORD"] = parsed["password"]
+        data["POSTGRES_DB"] = existing.get("POSTGRES_DB") or parsed["db"] or "iocdb"
+    elif had_existing_file:
+        # Instalación anterior sin POSTGRES_*: conservar iocuser/iocpass del volumen
+        data["POSTGRES_USER"] = data.get("POSTGRES_USER") or "iocuser"
+        data["POSTGRES_PASSWORD"] = "iocpass"
+        data["POSTGRES_DB"] = data.get("POSTGRES_DB") or "iocdb"
+    else:
+        data["POSTGRES_USER"] = data.get("POSTGRES_USER") or "iocuser"
+        data["POSTGRES_PASSWORD"] = secrets.token_urlsafe(24)
+        data["POSTGRES_DB"] = data.get("POSTGRES_DB") or "iocdb"
+
+data["DATABASE_URL"] = (
+    f"postgresql+asyncpg://{data['POSTGRES_USER']}:{data['POSTGRES_PASSWORD']}"
+    f"@postgres:5432/{data['POSTGRES_DB']}"
+)
 
 lines = [
     "# IOC Correlator — UTF-8, compatible con Docker Compose v2",
@@ -258,6 +298,9 @@ lines = [
     f"SECRET_KEY={q(data['SECRET_KEY'])}",
     f"ENVIRONMENT={data['ENVIRONMENT']}",
     f"FRONTEND_URL={q(data['FRONTEND_URL'])}",
+    f"POSTGRES_USER={q(data['POSTGRES_USER'])}",
+    f"POSTGRES_PASSWORD={q(data['POSTGRES_PASSWORD'])}",
+    f"POSTGRES_DB={q(data['POSTGRES_DB'])}",
     f"DATABASE_URL={q(data['DATABASE_URL'])}",
     f"REDIS_URL={q(data['REDIS_URL'])}",
     f"ENCRYPTION_KEY={q(data['ENCRYPTION_KEY'])}",
@@ -283,6 +326,13 @@ validate_env_compose() {
 ensure_env_file() {
   cd "$PROJECT_DIR"
   write_env_example_if_missing
+
+  # Migrar instalaciones anteriores: añadir POSTGRES_* sin rotar SECRET_KEY/ENCRYPTION_KEY
+  # ni regenerar la password (el volumen pgdata ya tiene la del primer initdb).
+  if [[ -f .env ]] && ! grep -qE '^POSTGRES_PASSWORD=' .env; then
+    log "Añadiendo POSTGRES_* al .env existente (compatibilidad con volumen)..."
+    write_env_with_python ".env" 0
+  fi
 
   if [[ -f .env ]] && env_has_valid_secrets && validate_env_compose; then
     log ".env: OK (válido para Docker Compose)"
@@ -324,10 +374,21 @@ env_has_valid_secrets() {
 }
 
 # --- Contenedores ---
+env_var() {
+  local key="$1" default="${2:-}"
+  local val=""
+  if [[ -f "$PROJECT_DIR/.env" ]]; then
+    val="$(grep -E "^${key}=" "$PROJECT_DIR/.env" | head -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+  fi
+  echo "${val:-$default}"
+}
+
 wait_postgres() {
-  local i
+  local i user db
+  user="$(env_var POSTGRES_USER iocuser)"
+  db="$(env_var POSTGRES_DB iocdb)"
   for i in $(seq 1 30); do
-    if run_dc exec -T postgres pg_isready -U iocuser -d iocdb >/dev/null 2>&1; then
+    if run_dc exec -T postgres pg_isready -U "$user" -d "$db" >/dev/null 2>&1; then
       return 0
     fi
     sleep 2
@@ -407,11 +468,13 @@ print_access_urls() {
   echo "    http://${ip}:${PORT_BACKEND}/docs"
   echo "    http://${ip}:${PORT_BACKEND}/health"
   echo ""
-  echo "  Puertos expuestos:"
+  echo "  Puertos expuestos en el host:"
   echo "    ${PORT_FRONTEND}  -> frontend (React)"
   echo "    ${PORT_BACKEND}  -> backend (FastAPI)"
-  echo "    ${PORT_POSTGRES}  -> PostgreSQL"
-  echo "    ${PORT_REDIS}  -> Redis"
+  echo ""
+  echo "  Postgres y Redis: solo red interna Docker (sin puertos en el host)."
+  echo "    docker compose exec postgres sh -c 'psql -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\"'"
+  echo "    docker compose exec redis redis-cli"
   echo ""
   echo "  Comandos útiles:"
   echo "    docker compose ps"
