@@ -9,6 +9,12 @@ from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_current_user
 from app.core.config import get_settings
+from app.core.rate_limit import (
+    clear_login_failures,
+    enforce_login_precheck,
+    enforce_register,
+    record_login_failure,
+)
 from app.core.security import (
     create_access_token,
     hash_password,
@@ -50,9 +56,12 @@ def _clear_refresh_cookie(response: Response) -> None:
 @router.post("/register", response_model=TokenResponse)
 async def register(
     body: RegisterRequest,
+    request: Request,
     response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    await enforce_register(request)
+
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -81,13 +90,19 @@ async def register(
 @router.post("/login", response_model=TokenResponse)
 async def login(
     body: LoginRequest,
+    request: Request,
     response: Response,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
+    await enforce_login_precheck(request, body.email)
+
     q = await db.execute(select(User).where(User.email == body.email))
     user = q.scalar_one_or_none()
     if user is None or not verify_password(body.password, user.hashed_password):
+        await record_login_failure(request, body.email)
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    await clear_login_failures(request, body.email)
 
     refresh_plain = new_refresh_token_value()
     await _persist_refresh(db, user.id, refresh_plain)

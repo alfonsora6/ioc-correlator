@@ -31,6 +31,19 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 7
 
+    # Auth rate limits (Redis). Behind Docker, request.client.host is often the
+    # bridge gateway (e.g. 172.18.0.1), so login keys include normalized email.
+    auth_rate_limit_login: int = 5
+    auth_rate_limit_login_window_seconds: int = 60
+    # Shared-IP safety net (AUTH_RATE_LIMIT_LOGIN_IP): with one gateway IP for all
+    # clients, a low ceiling becomes a global login lockout. Brute-force resistance
+    # comes from the per IP+email limit; keep this high (default 200/min).
+    auth_rate_limit_login_ip: int = 200
+    auth_rate_limit_login_ip_window_seconds: int = 60
+    auth_rate_limit_register: int = 10
+    auth_rate_limit_register_window_seconds: int = 60
+    auth_rate_limit_trust_proxy: bool = False
+
     @property
     def cors_origins(self) -> list[str]:
         origins = {self.frontend_url.rstrip("/")}
