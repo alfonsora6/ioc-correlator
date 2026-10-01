@@ -2,11 +2,25 @@
 
 Windows editors sometimes rewrite files as UTF-16LE (null bytes between ASCII
 chars), which breaks Linux install.sh and makes Git treat files as binary.
+
+How to run (needs the full repo checkout, not the backend-only Docker image)::
+
+    # from the repository root, on the host:
+    cd backend && pytest tests/test_repo_encoding.py -q
+
+    # or with Docker mounting the whole repo, e.g.:
+    docker compose run --rm -v "$PWD:/repo" -w /repo/backend backend \\
+        pytest tests/test_repo_encoding.py -q
+
+Inside the default backend container only ``backend/`` is present, so this test
+skips instead of failing when repo-root config files are missing.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -23,6 +37,13 @@ CONFIG_GLOBS = (
     "*.md",
     "backend/**/*.md",
     "obsidian/**/*.md",
+)
+
+# Markers that the full repository root is available (not the backend image alone).
+REPO_ROOT_MARKERS = (
+    ".env.example",
+    "install.sh",
+    "docker-compose.yml",
 )
 
 UTF16_LE_BOM = b"\xff\xfe"
@@ -46,7 +67,14 @@ def _iter_config_files() -> list[Path]:
 
 def test_versioned_config_files_are_utf8_without_utf16_or_nulls():
     files = _iter_config_files()
-    assert files, f"No config files matched under {REPO_ROOT}"
+    if not files or not any((REPO_ROOT / name).is_file() for name in REPO_ROOT_MARKERS):
+        pytest.skip(
+            "Repo-root config files not found under "
+            f"{REPO_ROOT} (likely the backend-only Docker image). "
+            "Run on the host against the full repository, e.g.: "
+            "cd backend && pytest tests/test_repo_encoding.py -q "
+            "— not inside the default backend container."
+        )
 
     problems: list[str] = []
     for path in files:
