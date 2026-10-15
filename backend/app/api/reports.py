@@ -75,12 +75,25 @@ async def export_pdf(
         """
     <html>
       <head><meta charset="utf-8"/><style>
-        body { font-family: DejaVu Sans, sans-serif; color: #111; }
+        @page { size: A4; margin: 18mm 14mm; }
+        body { font-family: DejaVu Sans, sans-serif; color: #111; font-size: 11px; }
         header { border-bottom: 2px solid #4c1d95; padding-bottom: 8px; margin-bottom: 16px; }
         footer { border-top: 1px solid #ccc; margin-top: 24px; font-size: 10px; color: #666; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #ddd; padding: 6px; font-size: 11px; }
-        th { background: #f3f4f6; }
+        table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 5px 6px;
+          font-size: 9.5px;
+          overflow-wrap: break-word;
+          word-break: break-all;
+          vertical-align: top;
+        }
+        th { background: #f3f4f6; text-align: left; }
+        col.col-time { width: 20%; }
+        col.col-ioc { width: 42%; }
+        col.col-type { width: 12%; }
+        col.col-score { width: 10%; }
+        col.col-severity { width: 16%; }
         .CRITICAL { background: #fee2e2; }
         .HIGH { background: #ffedd5; }
         .MEDIUM { background: #fef9c3; }
@@ -94,9 +107,18 @@ async def export_pdf(
           <div><strong>User:</strong> {{ user_email }} ({{ user_name }})</div>
           <div><strong>Range:</strong> {{ df }} → {{ dt }}</div>
         </header>
-        <img src="data:image/png;base64,{{ chart }}" style="max-width:100%;"/>
+        <div style="text-align: center;">
+          <img src="data:image/png;base64,{{ chart }}" style="max-width:80%;"/>
+        </div>
         <h3>Analyses (up to 500)</h3>
         <table>
+          <colgroup>
+            <col class="col-time">
+            <col class="col-ioc">
+            <col class="col-type">
+            <col class="col-score">
+            <col class="col-severity">
+          </colgroup>
           <thead><tr><th>Time (UTC)</th><th>IOC</th><th>Type</th><th>Score</th><th>Severity</th></tr></thead>
           <tbody>
           {% for r in rows %}
@@ -110,7 +132,7 @@ async def export_pdf(
           {% endfor %}
           </tbody>
         </table>
-        <footer>IOC Correlator — Logo placeholder — Confidential</footer>
+        <footer>IOC Correlator — Confidential</footer>
       </body>
     </html>
     """
