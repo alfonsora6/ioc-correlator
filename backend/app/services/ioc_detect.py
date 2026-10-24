@@ -36,6 +36,10 @@ def detect_ioc(raw: str) -> tuple[str, str]:
     if host and _DOMAIN_LIKE.match(host):
         return "domain", host.lower()
 
+    # Dotted numbers that are not valid IPs (e.g. 999.999.999.999) are not URLs.
+    if re.fullmatch(r"\d+(\.\d+)*", s):
+        raise ValueError("Could not detect IOC type")
+
     if "/" in s or "." in s:
         return "url", s if "://" in s else f"http://{s}"
 

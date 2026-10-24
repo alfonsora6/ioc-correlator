@@ -13,11 +13,15 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
     )
 
-    secret_key: str = "changeme"
+    # No default: the app must not start with a guessable JWT signing key.
+    # Set SECRET_KEY in .env (see .env.example) or the process environment.
+    secret_key: str
     environment: str = "development"
     frontend_url: str = "http://localhost:5173"
 
-    database_url: str = "postgresql+asyncpg://iocuser:iocpass@localhost:5432/iocdb"
+    # Placeholder only: the host is a reserved .invalid name, so connecting fails
+    # with a clear DNS error instead of reaching a database with a known password.
+    database_url: str = "postgresql+asyncpg://user:set-DATABASE_URL-in-env@database-url-not-set.invalid:5432/iocdb"
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
