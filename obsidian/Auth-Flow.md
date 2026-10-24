@@ -35,6 +35,13 @@ sequenceDiagram
 - El backend valida el refresh en BD, lo rota y emite un nuevo access token.
 - El refresh token sigue siendo de 7 días (`REFRESH_TOKEN_EXPIRE_DAYS`).
 
+## Rate limiting
+
+- Login y registro se limitan con contadores en Redis (script Lua atómico). El login cuenta por IP y email, con un tope adicional por IP.
+- `X-Forwarded-For` y `X-Real-IP` solo se usan si `AUTH_RATE_LIMIT_TRUST_PROXY` está activo.
+- Si Redis falla, el límite se omite (fail open) y se registra un aviso.
+- No hay roles dentro del tenant (sin RBAC).
+
 ## Cierre de sesión
 
 - `POST /api/v1/auth/logout` revoca el refresh token y borra la cookie.

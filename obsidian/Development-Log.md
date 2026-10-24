@@ -35,7 +35,7 @@ tags: [log, progress, decisions, desarrollo]
 - `MANUAL-INSTALACION.md` actualizado: sección de instalación automática; eliminados pasos UTF-16
 - Repositorio unificado en UTF-8 (sin `iconv` / `dos2unix` en el flujo de instalación)
 - Nota [[Installation]] y [[Deployment]] ampliados en esta bóveda
-- `DATABASE_URL` del manual alineado con `docker-compose.yml` (`iocuser:iocpass`)
+- `DATABASE_URL` del manual alineado con `docker-compose.yml` (nota posterior: ya no hay contraseña por defecto, ver sesión 009)
 
 ## Sesión 006 — Dominio + HTTPS en VPS
 
@@ -58,6 +58,28 @@ tags: [log, progress, decisions, desarrollo]
 - Generado `frontend/pnpm-lock.yaml` (`lockfileVersion: '9.0'`) con **pnpm@9.15.0** vía `corepack pnpm` (misma versión que `frontend/Dockerfile`)
 - En Windows, `corepack enable` puede fallar por EPERM en `Program Files`; usar `corepack prepare pnpm@9.15.0` + `corepack pnpm install` en `frontend/`
 - `package.json` no se modificó
+
+## Sesión 009 — Correcciones de documentación (2026-10-24)
+
+- Solo documentación; sin cambios en código, tests, `docker-compose.yml`, `install.sh` ni dependencias
+- `README.md` reescrito: Shodan figura como implementado pero no verificado (sin licencia de pago); instalación, uso, tests, seguridad y limitaciones
+- `CHANGELOG.md`: entrada 1.0.0
+- `MANUAL-INSTALACION.md`: eliminada la contraseña de ejemplo por defecto, `POSTGRES_*` en el `.env`, URLs en `127.0.0.1`, nota sobre Shodan y pie de página reformulado
+- Bóveda: [[Roadmap]] (Shodan pendiente de licencia), [[API-Integrations]], [[Architecture]], [[Deployment]], [[Installation]] y [[Auth-Flow]] alineadas con el estado real (puertos de Postgres y Redis no publicados, sin credenciales por defecto, rate limiting en Redis)
+
+## Sesión 010 — Tests, valores seguros y configuración de pytest (2026-10-24)
+
+- Tests nuevos en `backend/tests/`: `test_ioc_detect.py` (RF-03), `test_batch_extraction.py` (RF-07) y `test_tenant_isolation.py` (RF-12), más `conftest.py` con un `SECRET_KEY` de prueba
+- `config.py`: `SECRET_KEY` obligatoria (sin `changeme`) y `DATABASE_URL` por defecto con un marcador inválido (host `.invalid`)
+- `install.sh`: la contraseña histórica `iocpass` solo se conserva en instalaciones antiguas con volumen `pgdata` existente, con aviso
+- `backend/pytest.ini` define `asyncio_default_fixture_loop_scope = function` (sin aviso de pytest-asyncio)
+- Resultado esperado de la suite en el contenedor: 66 passed, 2 skipped (`test_repo_encoding.py` necesita el repositorio completo y el aislamiento del panel necesita `TEST_DATABASE_URL`)
+
+## Sesión 011 — Validación de IOC y script de verificación (2026-10-24)
+
+- `detect_ioc`: las entradas con solo dígitos y puntos que no son IPs válidas (`999.999.999.999`, `256.1.1.1`, `1.2.3`) lanzan `ValueError("Could not detect IOC type")` en lugar de clasificarse como URL; test parametrizado en `test_ioc_detect.py`
+- `scripts/verify-deploy.sh`: email de prueba con dominio `example.com` (antes `test.local`, rechazado por el backend con 422 por ser un dominio reservado)
+- Suite esperada en el contenedor: 69 passed, 2 skipped
 
 ## Cómo retomar el trabajo
 

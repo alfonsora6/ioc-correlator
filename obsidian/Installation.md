@@ -17,10 +17,10 @@ Ubicación: raíz del repositorio (`/install.sh`).
 ## Qué hace el script
 
 1. Comprueba paquetes apt, Docker y grupo `docker` (instala solo lo que falta)
-2. Comprueba `.env` y genera claves si hace falta
+2. Comprueba `.env` y genera claves si hace falta (`SECRET_KEY`, `ENCRYPTION_KEY` y contraseña aleatoria de Postgres)
 3. `docker compose up` (build solo si no están los contenedores)
 4. Migraciones Alembic con reintentos
-5. Muestra IP del servidor y puertos 5173 / 8000 / 5432 / 6379
+5. Muestra las URLs de acceso y los puertos publicados (5173 y 8000, solo en `127.0.0.1`). Postgres y Redis no publican puertos
 
 ## Si vas a usar dominio (DuckDNS/u otro) con HTTPS
 

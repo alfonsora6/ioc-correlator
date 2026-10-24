@@ -1,6 +1,6 @@
 # Manual de Instalación — IOC Correlator
 
-> Manual verificado y probado en Debian 12 (Bookworm)
+> Manual orientado a Debian 12 (Bookworm). Fuentes verificadas en esta versión: VirusTotal, AbuseIPDB y AlienVault OTX. **Shodan está implementado pero no verificado** por falta de licencia de pago.
 
 ## Índice
 1. [Requisitos previos](#1-requisitos-previos)
@@ -34,7 +34,7 @@
 - [AbuseIPDB](https://www.abuseipdb.com) — para análisis de IPs
 - [VirusTotal](https://www.virustotal.com) — para análisis de IPs, dominios y hashes
 - [AlienVault OTX](https://otx.alienvault.com) — para threat intelligence comunitaria
-- [Shodan](https://shodan.io) — opcional, requiere plan de pago o licencia académica
+- [Shodan](https://shodan.io) — opcional, requiere plan de pago o licencia académica (no verificado en esta versión)
 
 ---
 
@@ -50,13 +50,15 @@ chmod +x install.sh
 ./install.sh
 ```
 
-Al terminar verás algo como:
+Al terminar verás las URLs de acceso, por ejemplo:
 
 ```
   IP del servidor:  192.168.1.50
-  http://192.168.1.50:5173    (frontend)
-  http://192.168.1.50:8000/docs   (API)
+  http://127.0.0.1:5173    (frontend)
+  http://127.0.0.1:8000/docs   (API)
 ```
+
+> Backend y frontend solo se publican en `127.0.0.1` (ver `docker-compose.yml`). Las URLs con la IP de la máquina que imprime el script no son accesibles desde otros equipos: para acceso remoto usa un túnel SSH o un proxy inverso (sección 6). Postgres y Redis no publican puertos.
 
 Si Docker pide permisos: `newgrp docker` y `./install.sh --solo-app`.
 
@@ -159,6 +161,8 @@ rm -f .env
 ./install.sh --solo-app
 ```
 
+`SECRET_KEY`, `ENCRYPTION_KEY` y `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` son obligatorias: `docker compose` falla con un mensaje claro si falta alguna. Sustituye también la contraseña de ejemplo por una aleatoria (el instalador la genera automáticamente).
+
 ### Contenido del .env correctamente configurado
 ```
 # App
@@ -166,11 +170,18 @@ SECRET_KEY=tu-string-aleatorio-de-32-caracteres
 ENVIRONMENT=development
 FRONTEND_URL=http://localhost:5173
 
-# Database
-DATABASE_URL=postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb
+# PostgreSQL (obligatorias: Compose no arranca sin ellas)
+POSTGRES_USER=iocuser
+POSTGRES_PASSWORD=cambiar-por-password-aleatoria-fuerte
+POSTGRES_DB=iocdb
+
+# Database (usuario, contraseña y base de datos deben coincidir con POSTGRES_*)
+DATABASE_URL=postgresql+asyncpg://iocuser:cambiar-por-password-aleatoria-fuerte@postgres:5432/iocdb
 
 # Redis
 REDIS_URL=redis://redis:6379/0
+CELERY_BROKER_URL=redis://redis:6379/1
+CELERY_RESULT_BACKEND=redis://redis:6379/2
 
 # Encryption (generar con Fernet)
 ENCRYPTION_KEY=clave-fernet-base64-generada=
@@ -206,8 +217,8 @@ docker compose up --build -d
 ```
 
 Este comando levanta:
-- **postgres** — base de datos PostgreSQL
-- **redis** — caché y cola de trabajos
+- **postgres** — base de datos PostgreSQL (sin puerto publicado en el host)
+- **redis** — caché, cola de trabajos y rate limiting (sin puerto publicado en el host)
 - **backend** — API FastAPI
 - **celery** — worker para análisis en batch
 - **frontend** — interfaz React
@@ -229,9 +240,11 @@ docker compose exec backend alembic upgrade head
 Este paso es obligatorio la primera vez para crear las tablas en la base de datos.
 
 ### Paso 4 — Acceder a la aplicación
-- **Frontend:** http://localhost:5173
-- **API docs (Swagger):** http://localhost:8000/docs
-- **API docs (Redoc):** http://localhost:8000/redoc
+- **Frontend:** http://127.0.0.1:5173
+- **API docs (Swagger):** http://127.0.0.1:8000/docs
+- **API docs (Redoc):** http://127.0.0.1:8000/redoc
+
+Estos puertos solo escuchan en `127.0.0.1`.
 
 ---
 
@@ -333,9 +346,9 @@ sudo systemctl reload nginx
 
 ### Registro en la aplicación
 
-Abre la app por la **misma URL** que usa el frontend (IP o `localhost:5173`), no mezcles IP en el navegador con API en `localhost:8000`.
+Abre la app por la **misma URL** que usa el frontend (`localhost:5173`, o tu dominio si usas proxy inverso), no mezcles hosts distintos en el navegador y en la API.
 
-1. Abre http://localhost:5173 (o `http://TU_IP:5173`)
+1. Abre http://localhost:5173
 2. Haz clic en **Registro**
 3. Rellena: email, contraseña (**mínimo 8 caracteres**), nombre completo y nombre de tenant
 4. Inicia sesión con tus credenciales
@@ -364,7 +377,8 @@ Abre la app por la **misma URL** que usa el frontend (IP o `localhost:5173`), no
 5. Pega la key y haz clic en **Save**
 6. Haz clic en **Validate** ✅
 
-### Shodan (plan de pago o académico)
+### Shodan (plan de pago o académico, no verificado)
+- El cliente de Shodan está implementado, pero no se ha podido verificar en esta versión por falta de licencia de pago. Si no está disponible, el análisis continúa con las demás fuentes.
 - El plan gratuito **no incluye** el endpoint de consulta de IPs
 - Licencia académica gratuita: [help.shodan.io/the-basics/academic-license](https://help.shodan.io/the-basics/academic-license)
 - Si tienes plan de pago: [account.shodan.io](https://account.shodan.io) → copia tu API key
@@ -470,10 +484,10 @@ El upload del fichero puede funcionar, pero el progreso en tiempo real falla si 
 
 El navegador recibió **HTML** en lugar de **JSON** (o el backend no responde en el puerto 8000).
 
-1. Comprueba el API: `curl http://TU_IP:8000/health` → debe devolver `{"status":"ok"}`
+1. Comprueba el API: `curl http://127.0.0.1:8000/health` → debe devolver `{"status":"ok"}`
 2. Reconstruye: `docker compose up --build -d`
-3. Entra por `http://TU_IP:5173` (el frontend llamará a `http://TU_IP:8000`)
-4. Verificación automática: `chmod +x scripts/verify-deploy.sh && ./scripts/verify-deploy.sh TU_IP`
+3. Entra por `http://127.0.0.1:5173` (el frontend llamará a `http://127.0.0.1:8000`)
+4. Verificación automática: `chmod +x scripts/verify-deploy.sh && ./scripts/verify-deploy.sh 127.0.0.1`
 
 ### El script install.sh falla pero el manual a mano sí funciona
 
@@ -593,8 +607,8 @@ docker compose exec backend alembic upgrade head
 # Ver migraciones aplicadas
 docker compose exec backend alembic history
 
-# Conectar a PostgreSQL directamente
-docker compose exec postgres psql -U user -d iocdb
+# Conectar a PostgreSQL directamente (Postgres no publica puertos en el host)
+docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
 ```
 
 ### Actualizar la aplicación
@@ -608,7 +622,8 @@ docker compose exec backend alembic upgrade head
 
 ## Notas de seguridad
 
-- Cambia siempre el `SECRET_KEY` por un valor aleatorio seguro en producción
+- Cambia siempre el `SECRET_KEY` por un valor aleatorio seguro en producción; Compose no arranca si faltan `SECRET_KEY`, `ENCRYPTION_KEY` o `POSTGRES_*`
+- Postgres y Redis no publican puertos en el host; backend y frontend solo escuchan en `127.0.0.1`. Redis no tiene contraseña (solo red interna de Docker)
 - No subas nunca el archivo `.env` a GitHub (está en `.gitignore`)
 - Las API keys se almacenan cifradas en la base de datos con Fernet (AES-128)
 - En producción, usa HTTPS con un proxy inverso como Nginx + Certbot
@@ -616,4 +631,4 @@ docker compose exec backend alembic upgrade head
 
 ---
 
-*Manual verificado y probado — IOC Correlator v1.0*
+*IOC Correlator v1.0. Shodan no verificado en esta versión (sin licencia de pago).*

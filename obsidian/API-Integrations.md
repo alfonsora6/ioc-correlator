@@ -24,6 +24,8 @@ tags: [api, integrations, virustotal, abuseipdb, shodan, otx, integraciones]
 
 ## Shodan
 
+> Estado: implementado en `backend/app/services/intel_clients.py` pero **no verificado** por falta de licencia de pago. Si no hay clave o la API responde con error (p. ej. 403 con el plan gratuito), la fuente se marca como no disponible y el análisis continúa con el resto.
+
 - Endpoint: `GET https://api.shodan.io/shodan/host/{ip}`
 - Autenticación: parámetro `key` en la URL
 - Límite: ~1 req/seg
@@ -41,7 +43,7 @@ tags: [api, integrations, virustotal, abuseipdb, shodan, otx, integraciones]
 
 - Cada fuente devuelve una puntuación normalizada 0-100.
 - Puntuación final = media ponderada: VT (40%) + AbuseIPDB (30%) + Shodan (20%) + OTX (10%).
-- Si falta un proveedor, se **renormalizan** los pesos sobre las fuentes disponibles.
+- Si falta un proveedor (o no está disponible, como Shodan sin licencia), se **renormalizan** los pesos sobre las fuentes disponibles.
 - Mapeo de severidad: 0-25 LOW | 26-50 MEDIUM | 51-75 HIGH | 76-100 CRITICAL
 
 ## Caché Redis

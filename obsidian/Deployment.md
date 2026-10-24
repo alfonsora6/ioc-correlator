@@ -57,17 +57,19 @@ docker compose exec backend alembic upgrade head
 
 | Servicio   | URL                          |
 |------------|------------------------------|
-| Frontend   | http://localhost:5173        |
-| API        | http://localhost:8000        |
-| Documentación OpenAPI | http://localhost:8000/docs |
+| Frontend   | http://127.0.0.1:5173        |
+| API        | http://127.0.0.1:8000        |
+| Documentación OpenAPI | http://127.0.0.1:8000/docs |
+
+Backend y frontend solo escuchan en `127.0.0.1`. Postgres y Redis no publican puertos en el host.
 
 ## Servicios en Docker Compose
 
-- **postgres** — base de datos principal (`iocuser` / `iocpass` / `iocdb`)
-- **redis** — caché y broker Celery
+- **postgres** — base de datos principal (usuario, contraseña y base definidos por `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` en `.env`; sin puerto publicado)
+- **redis** — caché, broker Celery y rate limiting (sin puerto publicado)
 - **backend** — API FastAPI (uvicorn)
 - **celery** — worker para análisis por lotes
-- **frontend** — Vite en modo desarrollo
+- **frontend** — `pnpm build` y `pnpm preview` en el puerto 5173
 
 ## Dominio + HTTPS (Nginx)
 
@@ -136,6 +138,9 @@ docker run -d -p 6379:6379 redis:7
 | Variable      | Obligatoria | Descripción                          |
 |---------------|-------------|--------------------------------------|
 | SECRET_KEY    | sí          | Secreto para firmar JWT              |
+| POSTGRES_USER | sí (Compose) | Usuario de PostgreSQL               |
+| POSTGRES_PASSWORD | sí (Compose) | Contraseña de PostgreSQL        |
+| POSTGRES_DB   | sí (Compose) | Nombre de la base de datos         |
 | DATABASE_URL  | sí          | Cadena async de PostgreSQL           |
 | REDIS_URL     | sí          | URL de Redis                         |
 | ENCRYPTION_KEY| sí          | Clave Fernet en base64               |
@@ -144,7 +149,9 @@ docker run -d -p 6379:6379 redis:7
 
 Ejemplo `DATABASE_URL` con Compose:
 
-`postgresql+asyncpg://iocuser:iocpass@postgres:5432/iocdb`
+`postgresql+asyncpg://iocuser:<POSTGRES_PASSWORD>@postgres:5432/iocdb`
+
+Compose construye `DATABASE_URL` a partir de `POSTGRES_*` y falla con un mensaje claro si falta `SECRET_KEY`, `ENCRYPTION_KEY` o `POSTGRES_*`.
 
 ## Solución de problemas frecuentes
 

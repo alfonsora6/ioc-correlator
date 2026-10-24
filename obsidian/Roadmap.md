@@ -8,7 +8,8 @@ tags: [roadmap, future, features, hoja-de-ruta]
 
 - [x] Autenticación multi-tenant (registro / login / JWT)
 - [x] Análisis de IOC individual (IP / dominio / hash / URL)
-- [x] Integración VirusTotal + AbuseIPDB + Shodan + OTX
+- [x] Integración VirusTotal + AbuseIPDB + OTX (operativas y verificadas)
+- [ ] Shodan: implementado, pendiente de licencia de pago para verificar
 - [x] Panel de amenazas con contadores de severidad
 - [x] Gestión de claves API con validación
 - [x] Análisis por lotes vía Celery
