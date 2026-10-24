@@ -185,6 +185,7 @@ write_env_with_python() {
   python3 - "$target" "$regen_secrets" <<'PY'
 import re
 import secrets
+import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -216,6 +217,21 @@ def parse_database_url(url: str):
         "password": unquote(parsed.password or ""),
         "db": (parsed.path or "/").lstrip("/") or "iocdb",
     }
+
+def pgdata_volume_exists() -> bool:
+    """True si existe el volumen pgdata de este proyecto Compose.
+
+    Si Docker no responde (sin permisos, daemon parado) se asume que existe, para no
+    cambiar la contraseña de una base de datos que ya podría estar inicializada.
+    """
+    project = re.sub(r"[^a-z0-9_-]", "", path.resolve().parent.name.lower())
+    try:
+        out = subprocess.run(
+            ["docker", "volume", "ls", "-q"], capture_output=True, text=True, timeout=20, check=True
+        ).stdout.split()
+    except (OSError, subprocess.SubprocessError):
+        return True
+    return f"{project}_pgdata" in out
 
 defaults = {
     "SECRET_KEY": "",
@@ -277,8 +293,16 @@ if not data.get("POSTGRES_PASSWORD"):
         data["POSTGRES_USER"] = existing.get("POSTGRES_USER") or parsed["user"] or "iocuser"
         data["POSTGRES_PASSWORD"] = parsed["password"]
         data["POSTGRES_DB"] = existing.get("POSTGRES_DB") or parsed["db"] or "iocdb"
-    elif had_existing_file:
-        # Instalación anterior sin POSTGRES_*: conservar iocuser/iocpass del volumen
+    elif had_existing_file and pgdata_volume_exists():
+        # Instalación anterior sin POSTGRES_*: el volumen pgdata ya se inicializó con la
+        # contraseña histórica iocpass y cambiarla en el .env rompería el acceso.
+        # Solo se conserva si el volumen existe (o no se puede comprobar).
+        print(
+            "[install] AVISO: instalación antigua con contraseña de Postgres por defecto (iocpass). "
+            "Se conserva para no romper el volumen pgdata; cámbiala con ALTER USER y actualiza "
+            "POSTGRES_PASSWORD y DATABASE_URL en .env.",
+            file=sys.stderr,
+        )
         data["POSTGRES_USER"] = data.get("POSTGRES_USER") or "iocuser"
         data["POSTGRES_PASSWORD"] = "iocpass"
         data["POSTGRES_DB"] = data.get("POSTGRES_DB") or "iocdb"

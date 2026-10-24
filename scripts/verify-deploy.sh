@@ -15,7 +15,7 @@ echo "[verify] Frontend: $FRONT"
 curl -sf "${API}/health" | grep -q '"status"' || fail "GET /health"
 ok "/health"
 
-EMAIL="verify-$(date +%s)@test.local"
+EMAIL="verify-$(date +%s)@example.com"
 PASS="TestPass123!"
 
 REG=$(curl -sf -w "\n%{http_code}" -X POST "${API}/api/v1/auth/register" \
